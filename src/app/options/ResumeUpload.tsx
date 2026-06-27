@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { ProductIcon } from '@/shared/components/ProductIcons';
 import { aiConfigDB } from '@/core/storage/db';
+import { useLanguage } from '@/shared/i18n';
 import {
   extractTextFromPDF,
   extractTextFromWord,
@@ -16,6 +17,7 @@ interface ResumeUploadProps {
 
 /** 简历上传解析组件 */
 export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
+  const { t } = useLanguage();
   const [status, setStatus] = useState<'idle' | 'extracting' | 'parsing' | 'saving' | 'done' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [parseResult, setParseResult] = useState<ResumeParseResult | null>(null);
@@ -29,14 +31,14 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
     const maxSize = 10 * 1024 * 1024; // 10MB限制
     if (file.size > maxSize) {
       setStatus('error');
-      setStatusMessage('文件大小超过 10MB 限制');
+      setStatusMessage(t('resume.tooLarge'));
       return;
     }
 
     try {
       // Step 1: 提取文本
       setStatus('extracting');
-      setStatusMessage(`正在从 ${file.name} 中提取文本...`);
+      setStatusMessage(t('resume.extracting', { file: file.name }));
 
       let text: string;
       const fileName = file.name.toLowerCase();
@@ -52,17 +54,17 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
       }
 
       if (text.length < 30) {
-        throw new Error('提取的文本内容太少，请确认文件是否正确');
+        throw new Error(t('resume.tooShort'));
       }
 
-      setStatusMessage(`已提取 ${text.length} 个字符，正在智能解析...`);
+      setStatusMessage(t('resume.extracted', { count: text.length }));
 
       // Step 2: AI 结构化解析
       setStatus('parsing');
       const aiConfig = await aiConfigDB.getActive();
       if (!aiConfig) {
         setStatus('error');
-        setStatusMessage('请先在「AI 模型配置」中配置并激活一个 AI 模型');
+        setStatusMessage(t('resume.needModel'));
         return;
       }
 
@@ -71,11 +73,11 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
 
       if (!result.success) {
         setStatus('error');
-        setStatusMessage(`解析失败：${result.message}`);
+        setStatusMessage(t('resume.parseFailed', { message: result.message }));
         return;
       }
 
-      setStatusMessage('解析成功，正在保存数据...');
+      setStatusMessage(t('resume.saving'));
 
       // Step 3: 保存到本地
       setStatus('saving');
@@ -83,14 +85,14 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
       setSaveResult(saved);
 
       setStatus('done');
-      const savedMsg = saved.saved.length > 0 ? `已保存：${saved.saved.join('、')}` : '';
-      const skippedMsg = saved.skipped.length > 0 ? `已跳过：${saved.skipped.join('、')}` : '';
+      const savedMsg = saved.saved.length > 0 ? t('resume.saved', { items: saved.saved.join(', ') }) : '';
+      const skippedMsg = saved.skipped.length > 0 ? t('resume.skipped', { items: saved.skipped.join(', ') }) : '';
       setStatusMessage([savedMsg, skippedMsg].filter(Boolean).join('。'));
 
       onComplete?.();
     } catch (error) {
       setStatus('error');
-      setStatusMessage(error instanceof Error ? error.message : '解析失败');
+      setStatusMessage(error instanceof Error ? error.message : t('resume.failed'));
     }
 
     // 重置 input
@@ -108,9 +110,9 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
 
   return (
     <div className="resume-upload">
-      <h3 style={{ marginBottom: '4px' }}>简历智能解析</h3>
+      <h3 style={{ marginBottom: '4px' }}>{t('resume.title')}</h3>
       <p style={{ fontSize: '12px', color: 'var(--ca-text-muted)', marginBottom: '12px' }}>
-        上传简历文件，提取后请检查结果再写入资料库。（支持 Word / PDF / TXT / Markdown）
+        {t('resume.desc')}
       </p>
 
       {/* 上传区域 */}
@@ -130,9 +132,9 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
         {status === 'idle' && (
           <>
             <ProductIcon name="resume" className="resume-upload-icon" />
-            <p>点击选择简历文件</p>
+            <p>{t('resume.choose')}</p>
             <p style={{ fontSize: '11px', color: 'var(--ca-text-muted)' }}>
-              支持 Word(.docx)、PDF、TXT、Markdown
+              {t('resume.supported')}
             </p>
           </>
         )}
@@ -145,7 +147,7 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
         {status === 'done' && (
           <>
             <ProductIcon name="shield" className="resume-upload-icon resume-upload-icon-success" />
-            <p>解析完成！点击上传新的简历</p>
+            <p>{t('resume.done')}</p>
           </>
         )}
         {status === 'error' && (
@@ -153,7 +155,7 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
             <ProductIcon name="help" className="resume-upload-icon resume-upload-icon-error" />
             <p>{statusMessage}</p>
             <p style={{ fontSize: '11px', color: 'var(--ca-text-muted)', marginTop: '4px' }}>
-              点击重新选择文件
+              {t('resume.retry')}
             </p>
           </>
         )}
@@ -162,43 +164,43 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
       {/* 进度步骤 */}
       {status !== 'idle' && (
         <div className="resume-steps">
-          {getStepBadge('文本提取', status === 'extracting', ['parsing', 'saving', 'done'].includes(status))}
-          {getStepBadge('AI 解析', status === 'parsing', ['saving', 'done'].includes(status))}
-          {getStepBadge('数据保存', status === 'saving', status === 'done')}
+          {getStepBadge(t('resume.step.extract'), status === 'extracting', ['parsing', 'saving', 'done'].includes(status))}
+          {getStepBadge(t('resume.step.parse'), status === 'parsing', ['saving', 'done'].includes(status))}
+          {getStepBadge(t('resume.step.save'), status === 'saving', status === 'done')}
         </div>
       )}
 
       {/* 解析结果预览 */}
       {parseResult?.success && parseResult.data && (
         <div className="resume-result">
-          <h4 style={{ marginBottom: '8px' }}>解析结果预览</h4>
+          <h4 style={{ marginBottom: '8px' }}>{t('resume.preview')}</h4>
           {parseResult.data.personalInfo?.name && (
             <div className="resume-result-item">
-              <span className="resume-result-label">姓名</span>
+              <span className="resume-result-label">{t('resume.name')}</span>
               <span>{parseResult.data.personalInfo.name}</span>
             </div>
           )}
           {parseResult.data.personalInfo?.phone && (
             <div className="resume-result-item">
-              <span className="resume-result-label">手机</span>
+              <span className="resume-result-label">{t('resume.phone')}</span>
               <span>{parseResult.data.personalInfo.phone}</span>
             </div>
           )}
           {parseResult.data.personalInfo?.email && (
             <div className="resume-result-item">
-              <span className="resume-result-label">邮箱</span>
+              <span className="resume-result-label">{t('resume.email')}</span>
               <span>{parseResult.data.personalInfo.email}</span>
             </div>
           )}
           {parseResult.data.educations?.map((edu, i) => (
             <div key={i} className="resume-result-item">
-              <span className="resume-result-label">教育{i + 1}</span>
+              <span className="resume-result-label">{t('resume.education', { index: i + 1 })}</span>
               <span>{edu.school} · {edu.major} · {edu.type}</span>
             </div>
           ))}
           {parseResult.data.experiences?.map((exp, i) => (
             <div key={i} className="resume-result-item">
-              <span className="resume-result-label">{exp.type || '经历'}{i + 1}</span>
+              <span className="resume-result-label">{t('resume.experience', { index: i + 1 })}</span>
               <span>{exp.organization} · {exp.role}</span>
             </div>
           ))}
@@ -209,10 +211,10 @@ export default function ResumeUpload({ onComplete }: ResumeUploadProps) {
       {saveResult && (
         <div className="resume-save-result" style={{ marginTop: '8px', fontSize: '12px' }}>
           {saveResult.saved.length > 0 && (
-            <p style={{ color: 'var(--ca-success)' }}>已保存：{saveResult.saved.join('、')}</p>
+            <p style={{ color: 'var(--ca-success)' }}>{t('resume.saved', { items: saveResult.saved.join(', ') })}</p>
           )}
           {saveResult.skipped.length > 0 && (
-            <p style={{ color: 'var(--ca-warning)' }}>已跳过：{saveResult.skipped.join('、')}</p>
+            <p style={{ color: 'var(--ca-warning)' }}>{t('resume.skipped', { items: saveResult.skipped.join(', ') })}</p>
           )}
         </div>
       )}

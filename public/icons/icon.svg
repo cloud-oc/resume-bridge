@@ -1,22 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <defs>
-    <linearGradient id="bg" x1="20" y1="14" x2="108" y2="116" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1f3440"/>
-      <stop offset="1" stop-color="#14242d"/>
-    </linearGradient>
-    <linearGradient id="bridge" x1="27" y1="33" x2="102" y2="94" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#31b7a8"/>
-      <stop offset="1" stop-color="#177f79"/>
-    </linearGradient>
-  </defs>
-  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <rect width="128" height="128" rx="30" fill="#18a99b"/>
   <path
     d="M34 84V45c0-8 6.5-14.5 14.5-14.5H71c17.7 0 32 14.3 32 32V84"
     fill="none"
-    stroke="url(#bridge)"
+    stroke="#dbfff8"
     stroke-width="12"
     stroke-linecap="round"
     stroke-linejoin="round"
+    opacity=".48"
   />
   <path
     d="M34 84V60c0-7.7 6.3-14 14-14h35"
@@ -38,9 +29,9 @@
   <path
     d="M45 101h38"
     fill="none"
-    stroke="#31b7a8"
+    stroke="#dbfff8"
     stroke-width="7"
     stroke-linecap="round"
-    opacity=".85"
+    opacity=".72"
   />
 </svg>

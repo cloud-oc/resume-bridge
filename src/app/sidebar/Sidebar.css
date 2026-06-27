@@ -352,6 +352,36 @@
   margin-top: 10px;
 }
 
+.info-about-card {
+  margin-top: 12px;
+}
+
+.info-about-card p {
+  margin: 8px 0 0;
+  color: var(--ca-text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.info-about-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.info-about-actions span {
+  color: var(--ca-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sidebar-language {
+  margin-top: 12px;
+  color: var(--ca-text-secondary);
+}
+
 .help-panel {
   display: flex;
   flex-direction: column;

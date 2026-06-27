@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "开源网申填写助手，帮你扫描表单、填充内容并完成提交前复核",
+    "message": "Open-source online application assistant for scanning, filling, and reviewing application forms",
     "description": "Extension description"
   }
 }

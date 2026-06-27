@@ -413,34 +413,34 @@ export default function Options() {
           <div className="options-section">
             <div className="options-section-header">
               <div>
-                <h2>教育经历</h2>
-                <p className="options-desc">整理学校、专业、成绩与培养方式，便于匹配网申教育模块。</p>
+                <h2>{t('options.education.title')}</h2>
+                <p className="options-desc">{t('options.education.desc')}</p>
               </div>
               <button className="ca-btn ca-btn-primary" onClick={() => {
                 const newEdu = createEmptyEducation();
                 newEdu.order = educations.length;
                 setEducations([...educations, newEdu]);
               }}>
-                添加教育经历
+                {t('options.education.add')}
               </button>
             </div>
 
             {educations.length === 0 ? (
               <div className="ca-empty">
                 <div className="ca-empty-icon">—</div>
-                <p>暂无教育经历</p>
-                <p style={{ fontSize: '12px' }}>点击上方按钮添加</p>
+                <p>{t('options.education.empty')}</p>
+                <p style={{ fontSize: '12px' }}>{t('options.education.emptyHint')}</p>
               </div>
             ) : (
               educations.map((edu, index) => (
                 <div key={edu.id} className="ca-card" style={{ marginBottom: '16px' }}>
                   <div className="options-card-header">
-                    <h3>教育经历 #{index + 1}</h3>
-                    <button className="ca-btn ca-btn-danger ca-btn-sm" onClick={() => deleteEducation(edu.id)}>删除</button>
+                    <h3>{t('options.education.card', { index: index + 1 })}</h3>
+                    <button className="ca-btn ca-btn-danger ca-btn-sm" onClick={() => deleteEducation(edu.id)}>{t('options.education.delete')}</button>
                   </div>
                   <div className="options-form-grid">
                     <div className="ca-form-group">
-                      <label className="ca-label required">学历类型</label>
+                      <label className="ca-label required">{t('options.education.type')}</label>
                       <select className="ca-input ca-select" value={edu.type}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, type: e.target.value as Education['type'] }; setEducations(updated); }}>
                         <option value="本科">本科</option>
@@ -450,30 +450,30 @@ export default function Options() {
                       </select>
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label required">学校名称</label>
+                      <label className="ca-label required">{t('options.education.school')}</label>
                       <input className="ca-input" value={edu.school}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, school: e.target.value }; setEducations(updated); }}
-                        placeholder="如：北京大学" />
+                        placeholder={t('options.education.schoolPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">学院</label>
+                      <label className="ca-label">{t('options.education.college')}</label>
                       <input className="ca-input" value={edu.college || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, college: e.target.value }; setEducations(updated); }}
-                        placeholder="如：信息科学技术学院" />
+                        placeholder={t('options.education.collegePlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label required">专业</label>
+                      <label className="ca-label required">{t('options.education.major')}</label>
                       <input className="ca-input" value={edu.major}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, major: e.target.value }; setEducations(updated); }}
-                        placeholder="如：计算机科学与技术" />
+                        placeholder={t('options.education.majorPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">入学时间</label>
+                      <label className="ca-label">{t('options.education.start')}</label>
                       <input className="ca-input" type="date" value={edu.startDate}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, startDate: e.target.value }; setEducations(updated); }} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">毕业时间</label>
+                      <label className="ca-label">{t('options.education.end')}</label>
                       <input className="ca-input" type="date" value={edu.endDate}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, endDate: e.target.value }; setEducations(updated); }} />
                     </div>
@@ -484,41 +484,41 @@ export default function Options() {
                         placeholder="如：3.8" />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">GPA 满分</label>
+                      <label className="ca-label">{t('options.education.gpaTotal')}</label>
                       <input className="ca-input" value={edu.gpaTotal || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, gpaTotal: e.target.value }; setEducations(updated); }}
                         placeholder="如：4.0" />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">排名</label>
+                      <label className="ca-label">{t('options.education.ranking')}</label>
                       <input className="ca-input" value={edu.ranking || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, ranking: e.target.value }; setEducations(updated); }}
                         placeholder="如：5/120" />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">四级成绩</label>
+                      <label className="ca-label">{t('options.education.cet4')}</label>
                       <input className="ca-input" value={edu.cet4 || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, cet4: e.target.value }; setEducations(updated); }}
                         placeholder="如：550" />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">六级成绩</label>
+                      <label className="ca-label">{t('options.education.cet6')}</label>
                       <input className="ca-input" value={edu.cet6 || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, cet6: e.target.value }; setEducations(updated); }}
                         placeholder="如：520" />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">培养方式</label>
+                      <label className="ca-label">{t('options.education.training')}</label>
                       <select className="ca-input ca-select" value={edu.trainingMode || ''}
                         onChange={(e) => { const updated = [...educations]; updated[index] = { ...edu, trainingMode: e.target.value }; setEducations(updated); }}>
-                        <option value="">请选择</option>
+                        <option value="">{t('options.personal.select')}</option>
                         <option value="全日制">全日制</option>
                         <option value="非全日制">非全日制</option>
                       </select>
                     </div>
                   </div>
                   <button className="ca-btn ca-btn-primary" onClick={() => saveEducation(edu)} style={{ marginTop: '12px' }}>
-                    保存此经历
+                    {t('options.education.save')}
                   </button>
                 </div>
               ))
@@ -531,33 +531,33 @@ export default function Options() {
           <div className="options-section">
             <div className="options-section-header">
               <div>
-                <h2>工作 / 项目经历</h2>
-                <p className="options-desc">沉淀可复用的经历素材，后续可用于字段填充和开放题回答。</p>
+                <h2>{t('options.experience.title')}</h2>
+                <p className="options-desc">{t('options.experience.desc')}</p>
               </div>
               <button className="ca-btn ca-btn-primary" onClick={() => {
                 const newExp = createEmptyExperience();
                 newExp.order = experiences.length;
                 setExperiences([...experiences, newExp]);
               }}>
-                添加经历
+                {t('options.experience.add')}
               </button>
             </div>
 
             {experiences.length === 0 ? (
               <div className="ca-empty">
                 <div className="ca-empty-icon">—</div>
-                <p>暂无经历</p>
+                <p>{t('options.experience.empty')}</p>
               </div>
             ) : (
               experiences.map((exp, index) => (
                 <div key={exp.id} className="ca-card" style={{ marginBottom: '16px' }}>
                   <div className="options-card-header">
-                    <h3>经历 #{index + 1}</h3>
-                    <button className="ca-btn ca-btn-danger ca-btn-sm" onClick={() => deleteExperience(exp.id)}>删除</button>
+                    <h3>{t('options.experience.card', { index: index + 1 })}</h3>
+                    <button className="ca-btn ca-btn-danger ca-btn-sm" onClick={() => deleteExperience(exp.id)}>{t('options.education.delete')}</button>
                   </div>
                   <div className="options-form-grid">
                     <div className="ca-form-group">
-                      <label className="ca-label">经历类型</label>
+                      <label className="ca-label">{t('options.experience.type')}</label>
                       <select className="ca-input ca-select" value={exp.type}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, type: e.target.value as Experience['type'] }; setExperiences(u); }}>
                         <option value="工作">工作</option>
@@ -570,48 +570,48 @@ export default function Options() {
                       </select>
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label required">公司/组织</label>
+                      <label className="ca-label required">{t('options.experience.organization')}</label>
                       <input className="ca-input" value={exp.organization}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, organization: e.target.value }; setExperiences(u); }}
-                        placeholder="如：字节跳动" />
+                        placeholder={t('options.experience.organizationPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label required">岗位/角色</label>
+                      <label className="ca-label required">{t('options.experience.role')}</label>
                       <input className="ca-input" value={exp.role}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, role: e.target.value }; setExperiences(u); }}
-                        placeholder="如：产品经理实习生" />
+                        placeholder={t('options.experience.rolePlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">工作地点</label>
+                      <label className="ca-label">{t('options.experience.location')}</label>
                       <input className="ca-input" value={exp.location || ''}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, location: e.target.value }; setExperiences(u); }}
-                        placeholder="如：北京" />
+                        placeholder={t('options.experience.locationPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">开始时间</label>
+                      <label className="ca-label">{t('options.experience.start')}</label>
                       <input className="ca-input" type="date" value={exp.startDate}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, startDate: e.target.value }; setExperiences(u); }} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">结束时间</label>
+                      <label className="ca-label">{t('options.experience.end')}</label>
                       <input className="ca-input" type="date" value={exp.endDate}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, endDate: e.target.value }; setExperiences(u); }} />
                     </div>
                   </div>
                   <div className="ca-form-group">
-                    <label className="ca-label">核心描述</label>
+                    <label className="ca-label">{t('options.experience.description')}</label>
                     <textarea className="ca-input ca-textarea" value={exp.description}
                       onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, description: e.target.value }; setExperiences(u); }}
-                      placeholder="简要描述您在该经历中的角色和贡献" />
+                      placeholder={t('options.experience.descriptionPlaceholder')} />
                   </div>
                   <div className="ca-form-group">
-                    <label className="ca-label">核心要点（每行一条）</label>
+                    <label className="ca-label">{t('options.experience.bullets')}</label>
                     <textarea className="ca-input ca-textarea" value={exp.bullets.join('\n')}
                       onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, bullets: e.target.value.split('\n') }; setExperiences(u); }}
-                      placeholder="• 负责 XXX 产品的需求分析与原型设计&#10;• 实现了 XXX 功能，提升 XX% 用户留存" />
+                      placeholder={t('options.experience.bulletsPlaceholder')} />
                   </div>
                   <button className="ca-btn ca-btn-primary" onClick={() => saveExperience(exp)} style={{ marginTop: '12px' }}>
-                    保存此经历
+                    {t('options.experience.save')}
                   </button>
                 </div>
               ))
@@ -624,21 +624,21 @@ export default function Options() {
           <div className="options-section">
             <div className="options-section-header">
               <div>
-                <h2>AI 模型配置</h2>
-                <p className="options-desc">配置用于语义匹配、简历解析和开放题回答的模型。API Key 仅保存在本地。</p>
+                <h2>{t('options.ai.title')}</h2>
+                <p className="options-desc">{t('options.ai.desc')}</p>
               </div>
               <button className="ca-btn ca-btn-primary" onClick={() => {
                 const newConfig: AIModelConfig = {
                   id: generateId(),
                   provider: 'openai',
-                  name: '新模型配置',
+                  name: t('options.ai.newName'),
                   model: 'gpt-4o-mini',
                   isActive: aiConfigs.length === 0,
                   createdAt: new Date().toISOString(),
                 };
                 setAIConfigs([...aiConfigs, newConfig]);
               }}>
-                添加模型
+                {t('options.ai.add')}
               </button>
             </div>
 
@@ -646,8 +646,8 @@ export default function Options() {
               <div className="ca-card">
                 <div className="ca-empty">
                   <div className="ca-empty-icon">—</div>
-                  <p>暂未配置 AI 模型</p>
-                  <p style={{ fontSize: '12px' }}>配置后可使用智能匹配和内容生成功能</p>
+                  <p>{t('options.ai.empty')}</p>
+                  <p style={{ fontSize: '12px' }}>{t('options.ai.emptyHint')}</p>
                 </div>
               </div>
             ) : (
@@ -656,21 +656,21 @@ export default function Options() {
                   <div className="options-card-header">
                     <h3>
                       {config.name}
-                      {config.isActive && <span className="ca-badge ca-badge-success" style={{ marginLeft: '8px' }}>当前使用</span>}
+                      {config.isActive && <span className="ca-badge ca-badge-success" style={{ marginLeft: '8px' }}>{t('options.ai.active')}</span>}
                     </h3>
                     <button className="ca-btn ca-btn-danger ca-btn-sm" onClick={async () => {
                       await aiConfigDB.delete(config.id);
                       await loadData();
-                    }}>删除</button>
+                    }}>{t('options.education.delete')}</button>
                   </div>
                   <div className="options-form-grid">
                     <div className="ca-form-group">
-                      <label className="ca-label">配置名称</label>
+                      <label className="ca-label">{t('options.ai.name')}</label>
                       <input className="ca-input" value={config.name}
                         onChange={(e) => { const u = [...aiConfigs]; u[index] = { ...config, name: e.target.value }; setAIConfigs(u); }} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">模型提供商</label>
+                      <label className="ca-label">{t('options.ai.provider')}</label>
                       <select className="ca-input ca-select" value={config.provider}
                         onChange={(e) => {
                           const provider = e.target.value as AIModelConfig['provider'];
@@ -705,31 +705,31 @@ export default function Options() {
                       </select>
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">模型名称</label>
+                      <label className="ca-label">{t('options.ai.model')}</label>
                       <input className="ca-input" value={config.model}
                         onChange={(e) => { const u = [...aiConfigs]; u[index] = { ...config, model: e.target.value }; setAIConfigs(u); }}
-                        placeholder="如：gpt-4o-mini" />
+                        placeholder={t('options.ai.modelPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
                       <label className="ca-label">API Key</label>
                       <input className="ca-input" type="password" value={config.apiKey || ''}
                         onChange={(e) => { const u = [...aiConfigs]; u[index] = { ...config, apiKey: e.target.value }; setAIConfigs(u); }}
-                        placeholder="仅存储在本地" />
+                        placeholder={t('options.ai.apiKeyPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
-                      <label className="ca-label">API Base URL（可选）</label>
+                      <label className="ca-label">{t('options.ai.baseUrl')}</label>
                       <input className="ca-input" value={config.baseUrl || ''}
                         onChange={(e) => { const u = [...aiConfigs]; u[index] = { ...config, baseUrl: e.target.value }; setAIConfigs(u); }}
-                        placeholder="如自定义代理地址" />
+                        placeholder={t('options.ai.baseUrlPlaceholder')} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                     <button className="ca-btn ca-btn-primary" onClick={() => saveAIConfig(config)}>
-                      保存
+                      {t('options.ai.save')}
                     </button>
                     {!config.isActive && (
                       <button className="ca-btn ca-btn-outline" onClick={() => saveAIConfig({ ...config, isActive: true })}>
-                        设为默认
+                        {t('options.ai.setDefault')}
                       </button>
                     )}
                   </div>
@@ -738,11 +738,11 @@ export default function Options() {
             )}
 
             <div className="ca-card options-note options-note-success" style={{ marginTop: '16px' }}>
-              <h4>安全说明</h4>
+              <h4>{t('options.ai.securityTitle')}</h4>
               <ul>
-                <li>API Key 仅存储在您的浏览器本地存储中</li>
-                <li>API 请求直接发送到模型厂商官方服务器</li>
-                <li>本插件不会收集、上传或共享您的任何密钥</li>
+                <li>{t('options.ai.security.1')}</li>
+                <li>{t('options.ai.security.2')}</li>
+                <li>{t('options.ai.security.3')}</li>
               </ul>
             </div>
           </div>
@@ -751,9 +751,9 @@ export default function Options() {
         {/* ===== 简历解析 ===== */}
         {activePage === 'resume' && (
           <div className="options-section">
-            <h2>简历智能解析</h2>
-            <p className="options-desc">从简历中提取基础资料、教育经历和项目经历，保存前请检查解析结果。</p>
-            <Suspense fallback={<div className="ca-card options-loading">正在加载简历解析模块...</div>}>
+            <h2>{t('options.resume.title')}</h2>
+            <p className="options-desc">{t('options.resume.desc')}</p>
+            <Suspense fallback={<div className="ca-card options-loading">{t('options.resume.loading')}</div>}>
               <ResumeUpload onComplete={loadData} />
             </Suspense>
           </div>
@@ -762,37 +762,37 @@ export default function Options() {
         {/* ===== 数据备份 ===== */}
         {activePage === 'backup' && (
           <div className="options-section">
-            <h2>数据备份与恢复</h2>
-            <p className="options-desc">导出本地资料库，或从备份文件恢复。导入会覆盖当前数据。</p>
+            <h2>{t('options.backup.title')}</h2>
+            <p className="options-desc">{t('options.backup.desc')}</p>
 
             <div className="backup-cards">
               <div className="ca-card">
-                <h3>导出数据</h3>
+                <h3>{t('options.backup.exportTitle')}</h3>
                 <p style={{ fontSize: '13px', color: 'var(--ca-text-secondary)', margin: '8px 0' }}>
-                  将所有个人信息、经历、AI 配置导出为 JSON 文件
+                  {t('options.backup.exportDesc')}
                 </p>
                 <button className="ca-btn ca-btn-primary" onClick={handleExport}>
-                  导出全部数据
+                  {t('options.backup.exportButton')}
                 </button>
               </div>
 
               <div className="ca-card">
-                <h3>导入数据</h3>
+                <h3>{t('options.backup.importTitle')}</h3>
                 <p style={{ fontSize: '13px', color: 'var(--ca-text-secondary)', margin: '8px 0' }}>
-                  从之前导出的备份文件中恢复数据（将覆盖现有数据）
+                  {t('options.backup.importDesc')}
                 </p>
                 <button className="ca-btn ca-btn-outline" onClick={handleImport}>
-                  从备份恢复
+                  {t('options.backup.importButton')}
                 </button>
               </div>
             </div>
 
             <div className="ca-card options-note options-note-info" style={{ marginTop: '16px' }}>
-              <h4>备份建议</h4>
+              <h4>{t('options.backup.tipsTitle')}</h4>
               <ul>
-                <li>建议定期导出数据作为备份</li>
-                <li>更换浏览器或设备前，请先导出数据</li>
-                <li>备份文件包含所有个人信息，请妥善保管</li>
+                <li>{t('options.backup.tip.1')}</li>
+                <li>{t('options.backup.tip.2')}</li>
+                <li>{t('options.backup.tip.3')}</li>
               </ul>
             </div>
           </div>
@@ -802,90 +802,115 @@ export default function Options() {
           <div className="options-section help-page">
             <div className="options-section-header">
               <div>
-                <h2>使用帮助</h2>
-                <p className="options-desc">从第一次配置到提交前复核，照着做就能完成一次完整网申填写。</p>
+                <h2>{t('options.help.title')}</h2>
+                <p className="options-desc">{t('options.help.desc')}</p>
               </div>
             </div>
+
+            <section className="help-about">
+              <div className="help-about-main">
+                <span className="help-about-logo" aria-hidden="true">
+                  <BrandMark />
+                </span>
+                <div>
+                  <h3>{t('options.help.aboutTitle')}</h3>
+                  <p>{t('options.help.aboutDesc')}</p>
+                  <p>{t('options.help.githubDesc')}</p>
+                  <div className="help-about-actions">
+                    <a className="ca-btn ca-btn-primary ca-btn-sm" href={GITHUB_URL} target="_blank" rel="noreferrer">
+                      <ProductIcon name="backup" className="ca-btn-icon" />
+                      {t('app.github')}
+                    </a>
+                    <span>{t('app.copyright')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="help-language-card">
+                <h3>{t('options.help.languageTitle')}</h3>
+                <p>{t('options.help.languageDesc')}</p>
+                <LanguageSwitcher showLabel className="options-help-language" />
+              </div>
+            </section>
 
             <div className="help-grid">
               <section className="help-block help-block-primary">
                 <ProductIcon name="database" className="help-block-icon" />
                 <div>
-                  <h3>1. 先建好资料库</h3>
-                  <p>填写基础信息、教育经历、工作或项目经历。手机号、邮箱、岗位意向、到岗日期这类高频字段建议优先补全。</p>
+                  <h3>{t('options.help.step1.title')}</h3>
+                  <p>{t('options.help.step1.desc')}</p>
                 </div>
               </section>
 
               <section className="help-block">
                 <ProductIcon name="resume" className="help-block-icon" />
                 <div>
-                  <h3>2. 可用简历解析加速录入</h3>
-                  <p>上传 PDF、Word、TXT 或 Markdown 简历后，系统会提取结构化资料。保存前请检查姓名、学校、经历时间和岗位名称。</p>
+                  <h3>{t('options.help.step2.title')}</h3>
+                  <p>{t('options.help.step2.desc')}</p>
                 </div>
               </section>
 
               <section className="help-block">
                 <ProductIcon name="settings" className="help-block-icon" />
                 <div>
-                  <h3>3. 需要 AI 时再配置模型</h3>
-                  <p>规则匹配不依赖 AI。开放题生成、简历解析和低置信字段兜底需要模型配置，API Key 只保存在本地浏览器。</p>
+                  <h3>{t('options.help.step3.title')}</h3>
+                  <p>{t('options.help.step3.desc')}</p>
                 </div>
               </section>
 
               <section className="help-block">
                 <ProductIcon name="scan" className="help-block-icon" />
                 <div>
-                  <h3>4. 打开网申页后先扫描</h3>
-                  <p>等待页面加载完成，展开当前步骤的折叠区，再点击“扫描表单”。字段数量明显不对时，刷新页面或切换到具体表单步骤后再扫。</p>
+                  <h3>{t('options.help.step4.title')}</h3>
+                  <p>{t('options.help.step4.desc')}</p>
                 </div>
               </section>
 
               <section className="help-block">
                 <ProductIcon name="spark" className="help-block-icon" />
                 <div>
-                  <h3>5. 执行填充，但不自动提交</h3>
-                  <p>Resume Bridge 会把匹配到的内容写入页面，并在结果页展示成功、失败和待确认项。提交按钮仍由你手动点击。</p>
+                  <h3>{t('options.help.step5.title')}</h3>
+                  <p>{t('options.help.step5.desc')}</p>
                 </div>
               </section>
 
               <section className="help-block">
                 <ProductIcon name="shield" className="help-block-icon" />
                 <div>
-                  <h3>6. 提交前逐项复核</h3>
-                  <p>重点检查必填项、下拉选项、开放题、附件上传、隐私授权和分步页面的隐藏字段。确认无误后再提交。</p>
+                  <h3>{t('options.help.step6.title')}</h3>
+                  <p>{t('options.help.step6.desc')}</p>
                 </div>
               </section>
             </div>
 
             <section className="help-checklist">
-              <h3>提交前检查清单</h3>
+              <h3>{t('options.help.checklistTitle')}</h3>
               <div className="help-checklist-grid">
-                <label><input type="checkbox" /> 基础信息没有错别字</label>
-                <label><input type="checkbox" /> 手机和邮箱可正常联系</label>
-                <label><input type="checkbox" /> 教育和经历时间线一致</label>
-                <label><input type="checkbox" /> 岗位意向匹配当前职位</label>
-                <label><input type="checkbox" /> 开放题已按公司和岗位微调</label>
-                <label><input type="checkbox" /> 附件、授权和承诺项已手动确认</label>
+                <label><input type="checkbox" /> {t('options.help.check.1')}</label>
+                <label><input type="checkbox" /> {t('options.help.check.2')}</label>
+                <label><input type="checkbox" /> {t('options.help.check.3')}</label>
+                <label><input type="checkbox" /> {t('options.help.check.4')}</label>
+                <label><input type="checkbox" /> {t('options.help.check.5')}</label>
+                <label><input type="checkbox" /> {t('options.help.check.6')}</label>
               </div>
             </section>
 
             <section className="help-troubleshooting">
-              <h3>遇到问题时</h3>
+              <h3>{t('options.help.troubleTitle')}</h3>
               <details open>
-                <summary>扫描不到字段</summary>
-                <p>刷新页面，确认不是浏览器内部页、Chrome 商店页或登录保护页；对于分步网申页面，先进入具体步骤再扫描。</p>
+                <summary>{t('options.help.trouble.scan.q')}</summary>
+                <p>{t('options.help.trouble.scan.a')}</p>
               </details>
               <details>
-                <summary>下拉框没有填对</summary>
-                <p>不同 ATS 的选项值可能和显示文本不同。结果页会标记待确认项，下拉框建议提交前手动看一遍。</p>
+                <summary>{t('options.help.trouble.dropdown.q')}</summary>
+                <p>{t('options.help.trouble.dropdown.a')}</p>
               </details>
               <details>
-                <summary>开放题回答太模板化</summary>
-                <p>先在资料库补充更具体的经历要点，再把岗位描述粘进问题里，例如“结合下面 JD 回答为什么选择该岗位”。</p>
+                <summary>{t('options.help.trouble.answer.q')}</summary>
+                <p>{t('options.help.trouble.answer.a')}</p>
               </details>
               <details>
-                <summary>担心隐私</summary>
-                <p>资料库保存在本地 IndexedDB。只有主动使用 AI 功能时，相关资料摘要才会发送到你配置的模型服务。</p>
+                <summary>{t('options.help.trouble.privacy.q')}</summary>
+                <p>{t('options.help.trouble.privacy.a')}</p>
               </details>
             </section>
           </div>
