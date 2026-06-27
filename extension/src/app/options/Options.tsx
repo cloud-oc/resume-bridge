@@ -159,7 +159,7 @@ export default function Options() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `shentu-navigator-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `resume-bridge-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setSaveStatus('✅ 数据已导出');
@@ -199,9 +199,9 @@ export default function Options() {
       {/* 侧边导航 */}
       <nav className="options-nav">
         <div className="options-nav-header">
-          <span className="options-nav-logo" aria-hidden="true">申</span>
+          <span className="options-nav-logo" aria-hidden="true">RB</span>
           <div>
-            <h1>申途 Navigator</h1>
+            <h1>Resume Bridge</h1>
             <p>申请资料库</p>
           </div>
         </div>

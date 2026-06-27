@@ -100,9 +100,9 @@ export default function Sidebar() {
       {/* 头部 */}
       <header className="sidebar-header">
         <div className="sidebar-logo">
-          <span className="sidebar-logo-icon" aria-hidden="true">申</span>
+          <span className="sidebar-logo-icon" aria-hidden="true">RB</span>
           <div>
-            <h1 className="sidebar-title">申途 Navigator</h1>
+            <h1 className="sidebar-title">Resume Bridge</h1>
             <p className="sidebar-subtitle">网申填写与复核面板</p>
           </div>
         </div>
@@ -338,7 +338,7 @@ export default function Sidebar() {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `shentu-navigator-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.download = `resume-bridge-backup-${new Date().toISOString().slice(0, 10)}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
                     setStatusMessage('✅ 数据已导出');
@@ -354,7 +354,7 @@ export default function Sidebar() {
 
       {/* 底部 */}
       <footer className="sidebar-footer">
-        <span>申途 Navigator v1.0.0</span>
+        <span>Resume Bridge v1.0.0</span>
         <span>数据仅存储在本地</span>
       </footer>
     </div>

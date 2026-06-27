@@ -2,7 +2,7 @@
 
 ## Design System Overview
 
-申途 Navigator is a compact productivity extension with restrained product UI. It uses one sans-serif stack, structured panels, quiet state color, and dense but breathable forms. The visual system should make users feel that their application data is organized and reviewable.
+Resume Bridge is a compact productivity extension with restrained product UI. It uses one sans-serif stack, structured panels, quiet state color, and dense but breathable forms. The visual system should make users feel that their application data is organized and reviewable.
 
 ## Color Palette
 

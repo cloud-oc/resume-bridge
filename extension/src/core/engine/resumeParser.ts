@@ -49,7 +49,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
       return textParts.join('\n');
     }
   } catch (e) {
-    console.warn('[申途] pdf.js 解析失败，使用备用方案:', e);
+    console.warn('[Resume Bridge] pdf.js 解析失败，使用备用方案:', e);
   }
 
   // 方案 2：直接读取文本（对某些 PDF 有效）
@@ -85,7 +85,7 @@ export async function extractTextFromWord(file: File): Promise<string> {
       throw new Error('Word 文档内容太少');
     }
     if (result.messages.length > 0) {
-      console.warn('[申途] Word 解析警告:', result.messages);
+      console.warn('[Resume Bridge] Word 解析警告:', result.messages);
     }
     return text;
   } catch (e) {

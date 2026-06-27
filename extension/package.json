@@ -1,8 +1,8 @@
 {
-  "name": "shentu-navigator",
+  "name": "resume-bridge",
   "private": true,
   "version": "1.0.0",
-  "description": "申途 Navigator - AI 驱动的校招网申填写助手",
+  "description": "Resume Bridge - AI-powered campus application form assistant",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",

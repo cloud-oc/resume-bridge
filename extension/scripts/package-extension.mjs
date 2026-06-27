@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 const projectRoot = resolve(import.meta.dirname, '..');
 const distDir = resolve(projectRoot, 'dist');
 const releaseDir = resolve(projectRoot, 'release');
-const extensionName = 'shentu-navigator';
+const extensionName = 'resume-bridge';
 const keyPath = resolve(releaseDir, `${extensionName}.pem`);
 const zipPath = resolve(releaseDir, `${extensionName}.zip`);
 const crxPath = resolve(releaseDir, `${extensionName}.crx`);

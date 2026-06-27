@@ -16,7 +16,7 @@
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"
     },
-    "default_title": "申途 Navigator"
+    "default_title": "Resume Bridge"
   },
   "side_panel": {
     "default_path": "pages/sidebar.html"

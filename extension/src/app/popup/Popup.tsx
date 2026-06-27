@@ -17,9 +17,9 @@ export default function Popup() {
   return (
     <div className="popup">
       <div className="popup-header">
-        <span className="popup-logo" aria-hidden="true">申</span>
+        <span className="popup-logo" aria-hidden="true">RB</span>
         <div>
-          <h1 className="popup-title">申途 Navigator</h1>
+          <h1 className="popup-title">Resume Bridge</h1>
           <p className="popup-subtitle">校招申请填写助手 v1.0.0</p>
         </div>
       </div>

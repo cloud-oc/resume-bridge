@@ -5,18 +5,18 @@
 
 // 安装时初始化
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('[申途] 插件已安装/更新');
+  console.log('[Resume Bridge] 插件已安装/更新');
 
   // 创建右键菜单
   chrome.contextMenus.create({
-    id: 'shentu-navigator-fill-field',
+    id: 'resume-bridge-fill-field',
     title: '智能填充此字段',
     contexts: ['editable'],
   });
 
   chrome.contextMenus.create({
-    id: 'shentu-navigator-fill-page',
-    title: '📋 一键填充整页',
+    id: 'resume-bridge-fill-page',
+    title: '一键填充整页',
     contexts: ['page'],
   });
 });
@@ -25,11 +25,11 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id) return;
 
-  if (info.menuItemId === 'shentu-navigator-fill-field') {
+  if (info.menuItemId === 'resume-bridge-fill-field') {
     chrome.tabs.sendMessage(tab.id, {
       type: 'FILL_SINGLE_FIELD',
     });
-  } else if (info.menuItemId === 'shentu-navigator-fill-page') {
+  } else if (info.menuItemId === 'resume-bridge-fill-page') {
     chrome.tabs.sendMessage(tab.id, {
       type: 'FILL_ALL_FIELDS',
     });

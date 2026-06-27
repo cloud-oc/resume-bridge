@@ -304,7 +304,7 @@ function scanFormFields(): FormField[] {
   const processedElements = new Set<HTMLElement>();
 
   if (ats) {
-    console.log(`[申途] 检测到 ATS 系统：${ats.name}`);
+    console.log(`[Resume Bridge] 检测到 ATS 系统：${ats.name}`);
   }
 
   // 通用选择器 + ATS 专用选择器
@@ -617,7 +617,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const ats = detectCurrentATS();
       const atsName = ats?.name || '通用页面';
       const fields = scanFormFields();
-      console.log(`[申途] [${atsName}] 扫描到 ${fields.length} 个表单字段`);
+      console.log(`[Resume Bridge] [${atsName}] 扫描到 ${fields.length} 个表单字段`);
       sendResponse({ success: true, fields, atsName });
       break;
     }
@@ -625,14 +625,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     case 'EXECUTE_FILL': {
       const results = executeFill(message.data);
       const success = results.filter((r) => r.status === 'success').length;
-      console.log(`[申途] 填充完成：${success}/${results.length} 成功`);
+      console.log(`[Resume Bridge] 填充完成：${success}/${results.length} 成功`);
       sendResponse({ success: true, results });
       break;
     }
 
     case 'CLEAR_ALL_FILLED': {
       clearAllFilled();
-      console.log('[申途] 已清空所有填充内容');
+      console.log('[Resume Bridge] 已清空所有填充内容');
       sendResponse({ success: true });
       break;
     }
@@ -660,8 +660,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // 初始化
-console.log('[申途 Navigator] 内容脚本已加载 v2');
+console.log('[Resume Bridge] 内容脚本已加载 v2');
 const initialATS = detectCurrentATS();
 if (initialATS) {
-  console.log(`[申途] 检测到 ATS 系统：${initialATS.name}`);
+  console.log(`[Resume Bridge] 检测到 ATS 系统：${initialATS.name}`);
 }

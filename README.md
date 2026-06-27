@@ -1,12 +1,12 @@
-# 申途 Navigator
+# Resume Bridge
 
 > AI 驱动的校招网申填写助手。它把个人资料、简历解析、字段匹配和开放题草稿放进一个可复核的 Chrome 扩展里，帮助应届生少做重复录入，多保留提交前的判断权。
 
 ## 名称
 
-「申途」取“申请之路”之意；`Navigator` 表示它不是替用户盲目提交，而是在繁琐网申里帮助定位字段、组织材料、填充并复核。
+`Resume Bridge` 表示它把候选人已经整理好的简历资料，稳稳连接到分散、重复、格式各异的网申表单中。它的重点不是替用户盲目提交，而是帮助组织材料、定位字段、填充内容并保留提交前的复核权。
 
-GitHub 仓库名建议使用：`shentu-navigator`。
+GitHub 仓库名与插件包名：`resume-bridge`。
 
 ## 致谢
 
@@ -53,9 +53,9 @@ npm run package
 
 打包产物位于：
 
-- `extension/release/shentu-navigator.crx`
-- `extension/release/shentu-navigator.zip`
-- `extension/release/shentu-navigator.pem`（开发打包私钥，请保留以稳定扩展 ID）
+- `extension/release/resume-bridge.crx`
+- `extension/release/resume-bridge.zip`
+- `extension/release/resume-bridge.pem`（开发打包私钥，请保留以稳定扩展 ID）
 
 ### 加载到 Chrome
 

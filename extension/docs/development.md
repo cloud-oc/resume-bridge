@@ -1,4 +1,4 @@
-# 申途 Navigator 开发指南
+# Resume Bridge 开发指南
 
 ## 目录约定
 
@@ -21,7 +21,7 @@ extension/
 npm install
 npm run dev        # watch 构建，Chrome 加载 dist 后刷新扩展即可调试
 npm run build      # TypeScript 校验 + 生产构建
-npm run package    # 构建并输出 release/shentu-navigator.zip 和 .crx
+npm run package    # 构建并输出 release/resume-bridge.zip 和 .crx
 npm run clean      # 清理 dist 和已打出的 zip/crx，保留 release/*.pem
 ```
 
@@ -34,4 +34,4 @@ npm run clean      # 清理 dist 和已打出的 zip/crx，保留 release/*.pem
 
 ## CRX 打包说明
 
-`npm run package` 会优先复用 `release/shentu-navigator.pem`。不要删除这个私钥，否则重新生成的 CRX 会得到新的扩展 ID。
+`npm run package` 会优先复用 `release/resume-bridge.pem`。不要删除这个私钥，否则重新生成的 CRX 会得到新的扩展 ID。

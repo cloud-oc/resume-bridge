@@ -183,7 +183,7 @@ ${userDataSummary}
       confidence: value ? 0.7 : 0,
     };
   } catch (error) {
-    console.error('[申途] LLM 匹配失败:', error);
+    console.error('[Resume Bridge] LLM 匹配失败:', error);
     return { value: '', confidence: 0 };
   }
 }
@@ -226,7 +226,7 @@ ${jobDescription ? `目标岗位的招聘描述：\n${jobDescription}\n` : ''}
 
     return response.content.trim();
   } catch (error) {
-    console.error('[申途] LLM 生成失败:', error);
+    console.error('[Resume Bridge] LLM 生成失败:', error);
     throw error;
   }
 }
@@ -300,7 +300,7 @@ ${resumeText.substring(0, 5000)}
 
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('[申途] 简历解析失败:', error);
+    console.error('[Resume Bridge] 简历解析失败:', error);
     throw error;
   }
 }

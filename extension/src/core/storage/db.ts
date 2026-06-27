@@ -15,7 +15,7 @@ import type {
   UserData,
 } from '@/shared/types/models';
 
-const DB_NAME = '申途Agent';
+const DB_NAME = 'ResumeBridge';
 const DB_VERSION = 1;
 
 // Store 名称常量

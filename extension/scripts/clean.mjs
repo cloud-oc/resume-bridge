@@ -8,6 +8,8 @@ await rm(resolve(projectRoot, 'dist.crx'), { force: true });
 await rm(resolve(projectRoot, 'dist.pem'), { force: true });
 
 for (const name of [
+  'resume-bridge.zip',
+  'resume-bridge.crx',
   'shentu-navigator.zip',
   'shentu-navigator.crx',
   'campus-apply-agent.zip',

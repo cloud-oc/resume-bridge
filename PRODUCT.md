@@ -10,7 +10,7 @@ Chinese university students and early-career candidates who are completing many 
 
 ## Product Purpose
 
-申途 Navigator helps candidates keep structured profile data locally, parse resume content, scan application forms, fill matched fields, and draft short-answer responses. Success means users spend less time on repetitive form entry while still feeling in control of every submitted field.
+Resume Bridge helps candidates keep structured profile data locally, parse resume content, scan application forms, fill matched fields, and draft short-answer responses. Success means users spend less time on repetitive form entry while still feeling in control of every submitted field.
 
 ## Brand Personality
 
