@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "申途 Navigator",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "AI 驱动的校招网申填写助手，帮你整理信息、扫描表单并审慎填充",
+    "description": "Extension description"
+  }
+}

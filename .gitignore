@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+.cursor/
+extension/dist/
+extension/release/*.zip
+extension/release/*.crx
+extension/release/*.pem
+extension/dist.crx
+extension/dist.pem
+extension/node_modules/
