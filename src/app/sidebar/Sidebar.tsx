@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormField, FillResult } from '@/shared/types/models';
 import { ensureContentScriptReady, executeFullFill } from '@/core/engine/fillOrchestrator';
 import { BrandMark, ProductIcon, type ProductIconName } from '@/shared/components/ProductIcons';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { HeaderSettingsMenu } from '@/shared/components/LanguageSwitcher';
 import { useLanguage } from '@/shared/i18n';
 import QAPanel from './QAPanel';
 import './Sidebar.css';
@@ -27,6 +27,15 @@ export default function Sidebar() {
   const [scannedFields, setScannedFields] = useState<FormField[]>([]);
   const [fillResult, setFillResult] = useState<FillResult | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
+
+  const openOptionsPage = (hash?: string) => {
+    const url = hash ? chrome.runtime.getURL(`pages/options.html#${hash}`) : undefined;
+    if (url) {
+      chrome.tabs.create({ url });
+      return;
+    }
+    chrome.runtime.openOptionsPage();
+  };
 
   // 获取当前标签页 ID
   const getActiveTabId = (): Promise<number | undefined> => {
@@ -141,7 +150,10 @@ export default function Sidebar() {
             <p className="sidebar-subtitle">{t('app.productPanel')}</p>
           </div>
         </div>
-        <div className="sidebar-trust">{t('app.localStorage')}</div>
+        <div className="sidebar-header-actions">
+          <div className="sidebar-trust">{t('app.localStorage')}</div>
+          <HeaderSettingsMenu onOpenSettingsPage={() => openOptionsPage('settings')} />
+        </div>
       </header>
 
       {/* 标签切换 */}
@@ -379,7 +391,7 @@ export default function Sidebar() {
               </p>
               <button
                 className="ca-btn ca-btn-outline ca-btn-block"
-                onClick={() => chrome.runtime.openOptionsPage()}
+                onClick={() => openOptionsPage()}
               >
                 <ProductIcon name="database" className="ca-btn-icon" />
                 {t('sidebar.info.openLibrary')}
@@ -392,7 +404,7 @@ export default function Sidebar() {
                 <button
                   className="ca-btn ca-btn-outline ca-btn-sm"
                   onClick={() => {
-                    chrome.runtime.openOptionsPage();
+                    openOptionsPage('ai');
                   }}
                 >
                   <ProductIcon name="settings" className="ca-btn-icon" />
@@ -435,7 +447,6 @@ export default function Sidebar() {
                 </button>
                 <span>{t('app.copyright')}</span>
               </div>
-              <LanguageSwitcher compact showLabel className="sidebar-language" />
             </div>
           </div>
         )}
@@ -493,7 +504,9 @@ export default function Sidebar() {
 
       {/* 底部 */}
       <footer className="sidebar-footer">
-        <span>{t('sidebar.footer.version')}</span>
+        <button type="button" onClick={() => chrome.tabs.create({ url: GITHUB_URL })}>
+          {t('app.github')}
+        </button>
         <span>{t('app.copyright')}</span>
       </footer>
     </div>

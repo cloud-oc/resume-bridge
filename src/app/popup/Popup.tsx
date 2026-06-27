@@ -1,7 +1,7 @@
 import './Popup.css';
 import { openExtensionSidebar } from '@/shared/browser/extensionApi';
 import { BrandMark, ProductIcon } from '@/shared/components/ProductIcons';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { HeaderSettingsMenu } from '@/shared/components/LanguageSwitcher';
 import { useLanguage } from '@/shared/i18n';
 
 const GITHUB_URL = 'https://github.com/cloud-oc/resume-bridge';
@@ -22,6 +22,11 @@ export default function Popup() {
     window.close();
   };
 
+  const handleOpenSettings = () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/options.html#settings') });
+    window.close();
+  };
+
   const handleOpenHelp = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('pages/options.html#help') });
     window.close();
@@ -35,13 +40,16 @@ export default function Popup() {
   return (
     <div className="popup">
       <div className="popup-header">
-        <span className="popup-logo" aria-hidden="true">
-          <BrandMark />
-        </span>
-        <div>
-          <h1 className="popup-title">{t('app.name')}</h1>
-          <p className="popup-subtitle">{t('app.productTagline')} {t('app.version')}</p>
+        <div className="popup-brand">
+          <span className="popup-logo" aria-hidden="true">
+            <BrandMark />
+          </span>
+          <div>
+            <h1 className="popup-title">{t('app.name')}</h1>
+            <p className="popup-subtitle">{t('app.productTagline')}</p>
+          </div>
         </div>
+        <HeaderSettingsMenu onOpenSettingsPage={handleOpenSettings} />
       </div>
 
       <div className="popup-actions">
@@ -61,12 +69,9 @@ export default function Popup() {
           <ProductIcon name="help" className="ca-btn-icon" />
           {t('popup.openHelp')}
         </button>
-        <LanguageSwitcher compact className="popup-language" />
       </div>
 
       <div className="popup-footer">
-        <p>{t('popup.footerHint')}</p>
-        <p className="popup-privacy">{t('app.privacyLine')}</p>
         <div className="popup-links">
           <button type="button" onClick={handleOpenGitHub}>{t('app.github')}</button>
           <span>{t('app.copyright')}</span>

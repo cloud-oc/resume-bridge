@@ -17,7 +17,8 @@ export type ProductIconName =
   | 'help'
   | 'database'
   | 'shield'
-  | 'spark';
+  | 'spark'
+  | 'external';
 
 const paths: Record<ProductIconName, ReactNode> = {
   user: (
@@ -117,6 +118,13 @@ const paths: Record<ProductIconName, ReactNode> = {
       <path d="M12 3.8 13.6 9l4.8 1.6-4.8 1.8L12 20.2l-1.6-7.8-4.8-1.8L10.4 9 12 3.8Z" />
       <path d="M18 4.5v3" />
       <path d="M19.5 6h-3" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M14 5h5v5" />
+      <path d="m13 11 6-6" />
+      <path d="M19 14v3.5c0 .9-.7 1.5-1.5 1.5h-11C5.7 19 5 18.4 5 17.5v-11C5 5.7 5.7 5 6.5 5H10" />
     </>
   ),
 };

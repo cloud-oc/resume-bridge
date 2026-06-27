@@ -12,10 +12,18 @@
 .popup-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 18px;
   color: var(--ca-text-on-strong);
   background: var(--ca-surface-strong);
+}
+
+.popup-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
 }
 
 .popup-logo {
@@ -56,11 +64,6 @@
   padding: 14px;
 }
 
-.popup-language {
-  justify-content: center;
-  margin-top: 2px;
-}
-
 .popup-status {
   display: flex;
   align-items: flex-start;
@@ -85,7 +88,7 @@
 }
 
 .popup-footer {
-  padding: 12px 14px 14px;
+  padding: 10px 14px 12px;
   color: var(--ca-text-muted);
   background: var(--ca-surface);
   border-top: 1px solid var(--ca-border);
@@ -111,9 +114,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--ca-border);
 }
 
 .popup-links button {

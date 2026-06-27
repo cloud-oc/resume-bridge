@@ -20,6 +20,7 @@
   padding: 16px;
   color: var(--ca-text-on-strong);
   background: var(--ca-surface-strong);
+  overflow: visible;
 }
 
 .sidebar-logo {
@@ -69,6 +70,13 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+}
+
+.sidebar-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .sidebar-nav {
@@ -377,11 +385,6 @@
   font-weight: 700;
 }
 
-.sidebar-language {
-  margin-top: 12px;
-  color: var(--ca-text-secondary);
-}
-
 .help-panel {
   display: flex;
   flex-direction: column;
@@ -467,6 +470,7 @@
 
 .sidebar-footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 9px 12px;
@@ -474,6 +478,20 @@
   background: var(--ca-surface);
   border-top: 1px solid var(--ca-border);
   font-size: 10px;
+}
+
+.sidebar-footer button {
+  padding: 0;
+  color: var(--ca-primary-hover);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.sidebar-footer button:hover {
+  text-decoration: underline;
 }
 
 .qa-presets {

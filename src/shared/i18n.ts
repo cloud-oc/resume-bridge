@@ -15,7 +15,6 @@ export const languageOptions: { code: Language; shortLabel: string; label: strin
 const dictionaries: Dictionaries = {
   en: {
     'app.name': 'Resume Bridge',
-    'app.version': 'v1.0.0',
     'app.github': 'GitHub',
     'app.copyright': '©Cloud09',
     'app.localOnly': 'Local only',
@@ -26,14 +25,27 @@ const dictionaries: Dictionaries = {
     'app.productTagline': 'Online application assistant',
     'app.productPanel': 'Application review panel',
 
+    'settings.button': 'Settings',
+    'settings.title': 'Extension settings',
+    'settings.subtitle': 'Language and appearance',
+    'settings.openSettingsPage': 'Open settings page',
+
     'language.label': 'Language',
     'language.description': 'Switch the extension interface between English, Chinese, and Japanese.',
+
+    'appearance.label': 'Appearance',
+    'appearance.description': 'Choose light, dark, or follow your browser and system setting.',
+    'appearance.system': 'System',
+    'appearance.light': 'Light',
+    'appearance.dark': 'Dark',
+    'appearance.effective': 'Using {theme} theme now.',
+    'appearance.theme.light': 'light',
+    'appearance.theme.dark': 'dark',
 
     'popup.status': 'Your local profile is ready. Review results before submitting.',
     'popup.openSidebar': 'Open fill panel',
     'popup.openOptions': 'Manage profile library',
     'popup.openHelp': 'Usage help',
-    'popup.footerHint': 'Scan page fields first, then fill and review.',
 
     'sidebar.tab.fill': 'Fill',
     'sidebar.tab.result': 'Results',
@@ -112,7 +124,6 @@ const dictionaries: Dictionaries = {
     'sidebar.help.faq.privacy.q': 'Will my data be uploaded?',
     'sidebar.help.faq.privacy.a':
       'Profile data and API keys stay in your browser. When AI features are enabled, only the needed prompt context is sent to your configured model provider.',
-    'sidebar.footer.version': 'Resume Bridge v1.0.0',
 
     'qa.status.generating': 'Generating answer...',
     'qa.status.needModel': 'Configure an AI model first.',
@@ -139,6 +150,7 @@ const dictionaries: Dictionaries = {
     'options.nav.ai': 'AI models',
     'options.nav.resume': 'Resume import',
     'options.nav.backup': 'Backup',
+    'options.nav.settings': 'Settings',
     'options.nav.help': 'Help',
     'options.nav.subtitle': 'Application profile',
     'options.save.personal': 'Personal info saved.',
@@ -296,14 +308,24 @@ const dictionaries: Dictionaries = {
     'options.backup.tip.2': 'Export before switching browsers or devices.',
     'options.backup.tip.3': 'Backup files contain personal information. Keep them private.',
 
+    'options.settings.title': 'Extension settings',
+    'options.settings.desc': 'Set the extension language and theme once. These preferences sync across the popup, side panel, and profile library.',
+    'options.settings.languageTitle': 'Interface language',
+    'options.settings.languageDesc': 'Resume Bridge detects your browser language on first use. You can switch it here at any time.',
+    'options.settings.appearanceTitle': 'Theme mode',
+    'options.settings.appearanceDesc': 'Follow the system theme by default, or lock the extension to light or dark mode.',
+    'options.settings.scopeTitle': 'Where this applies',
+    'options.settings.scopeDesc': 'Language and appearance only change the extension interface. Your profile data, AI settings, and backups stay unchanged.',
+
     'options.help.title': 'Usage help',
     'options.help.desc': 'A step-by-step guide from first setup to final review.',
     'options.help.aboutTitle': 'About Resume Bridge',
     'options.help.aboutDesc':
-      'An open-source assistant for online application forms across internships, campus hiring, and experienced roles.',
+      'An open-source assistant for online application forms across internships, entry-level roles, and experienced roles.',
     'options.help.githubDesc': 'Project repository, issues, and releases are available on GitHub.',
-    'options.help.languageTitle': 'Interface language',
-    'options.help.languageDesc': 'Choose the language used by the extension shell and help content.',
+    'options.help.trustTitle': 'Local, review-first workflow',
+    'options.help.trustDesc':
+      'Your profile library stays in browser storage. Resume Bridge fills matched fields, then leaves final review and submission to you.',
     'options.help.step1.title': '1. Build your profile library',
     'options.help.step1.desc':
       'Fill in personal info, education, work or project experience. Prioritize phone, email, role targets, and availability.',
@@ -345,7 +367,6 @@ const dictionaries: Dictionaries = {
   },
   zh: {
     'app.name': 'Resume Bridge',
-    'app.version': 'v1.0.0',
     'app.github': 'GitHub',
     'app.copyright': '©Cloud09',
     'app.localOnly': '仅本地',
@@ -356,14 +377,27 @@ const dictionaries: Dictionaries = {
     'app.productTagline': '网申填写助手',
     'app.productPanel': '网申填写与复核面板',
 
+    'settings.button': '设置',
+    'settings.title': '插件设置',
+    'settings.subtitle': '语言与外观',
+    'settings.openSettingsPage': '打开设置页',
+
     'language.label': '语言',
     'language.description': '切换插件界面的英文、中文和日文显示。',
+
+    'appearance.label': '外观',
+    'appearance.description': '选择浅色、深色，或跟随浏览器与系统设置。',
+    'appearance.system': '跟随系统',
+    'appearance.light': '浅色',
+    'appearance.dark': '深色',
+    'appearance.effective': '当前使用{theme}主题。',
+    'appearance.theme.light': '浅色',
+    'appearance.theme.dark': '深色',
 
     'popup.status': '本地资料库已就绪，填充前请先复核结果。',
     'popup.openSidebar': '打开智能填充面板',
     'popup.openOptions': '管理个人资料库',
     'popup.openHelp': '使用帮助',
-    'popup.footerHint': '先扫描页面字段，再执行填充和复核。',
 
     'sidebar.tab.fill': '填充',
     'sidebar.tab.result': '结果',
@@ -437,7 +471,6 @@ const dictionaries: Dictionaries = {
     'sidebar.help.faq.review.a': '不同 ATS 的字段命名和下拉选项差异很大。Resume Bridge 会保留可见结果，但最终提交前仍建议你确认每个关键字段。',
     'sidebar.help.faq.privacy.q': '我的数据会上传吗？',
     'sidebar.help.faq.privacy.a': '资料库和 API Key 存在本地浏览器。只有当你启用 AI 功能时，相关问题和资料摘要会直接发送给你配置的模型服务。',
-    'sidebar.footer.version': 'Resume Bridge v1.0.0',
 
     'qa.status.generating': '正在生成回答...',
     'qa.status.needModel': '请先配置 AI 模型。',
@@ -464,6 +497,7 @@ const dictionaries: Dictionaries = {
     'options.nav.ai': 'AI 模型配置',
     'options.nav.resume': '简历导入',
     'options.nav.backup': '数据备份',
+    'options.nav.settings': '插件设置',
     'options.nav.help': '使用帮助',
     'options.nav.subtitle': '网申资料库',
     'options.save.personal': '个人信息已保存。',
@@ -619,13 +653,23 @@ const dictionaries: Dictionaries = {
     'options.backup.tip.2': '更换浏览器或设备前，请先导出数据',
     'options.backup.tip.3': '备份文件包含所有个人信息，请妥善保管',
 
+    'options.settings.title': '插件设置',
+    'options.settings.desc': '统一设置插件的界面语言和主题模式，弹窗、侧边栏和资料库会同步生效。',
+    'options.settings.languageTitle': '界面语言',
+    'options.settings.languageDesc': '首次打开时会自动识别浏览器语言；之后你可以在这里随时切换。',
+    'options.settings.appearanceTitle': '主题模式',
+    'options.settings.appearanceDesc': '默认跟随系统，也可以固定为浅色或深色。',
+    'options.settings.scopeTitle': '设置影响范围',
+    'options.settings.scopeDesc': '语言和外观只影响插件界面，不会改动你的资料库、AI 配置或备份数据。',
+
     'options.help.title': '使用帮助',
     'options.help.desc': '从第一次配置到提交前复核，照着做就能完成一次完整网申填写。',
     'options.help.aboutTitle': '关于 Resume Bridge',
-    'options.help.aboutDesc': '面向实习、校招和社招的开源网申填写助手。',
+    'options.help.aboutDesc': '面向实习、初级岗位和社招岗位的开源网申填写助手。',
     'options.help.githubDesc': '项目源码、问题反馈和发布记录都在 GitHub。',
-    'options.help.languageTitle': '界面语言',
-    'options.help.languageDesc': '选择插件界面和帮助内容使用的语言。',
+    'options.help.trustTitle': '本地存储，提交前复核',
+    'options.help.trustDesc':
+      '你的资料库保存在浏览器本地。Resume Bridge 负责写入匹配字段，最终复核和提交仍由你完成。',
     'options.help.step1.title': '1. 先建好资料库',
     'options.help.step1.desc': '填写基础信息、教育经历、工作或项目经历。手机号、邮箱、岗位意向、到岗日期这类高频字段建议优先补全。',
     'options.help.step2.title': '2. 可用简历导入加速录入',
@@ -657,7 +701,6 @@ const dictionaries: Dictionaries = {
   },
   ja: {
     'app.name': 'Resume Bridge',
-    'app.version': 'v1.0.0',
     'app.github': 'GitHub',
     'app.copyright': '©Cloud09',
     'app.localOnly': 'ローカルのみ',
@@ -668,14 +711,27 @@ const dictionaries: Dictionaries = {
     'app.productTagline': 'オンライン応募入力アシスタント',
     'app.productPanel': '応募入力と確認パネル',
 
+    'settings.button': '設定',
+    'settings.title': '拡張機能の設定',
+    'settings.subtitle': '言語と表示',
+    'settings.openSettingsPage': '設定ページを開く',
+
     'language.label': '言語',
     'language.description': '拡張機能の表示言語を英語、中国語、日本語に切り替えます。',
+
+    'appearance.label': '表示',
+    'appearance.description': 'ライト、ダーク、またはブラウザーとシステム設定に合わせます。',
+    'appearance.system': 'システム',
+    'appearance.light': 'ライト',
+    'appearance.dark': 'ダーク',
+    'appearance.effective': '現在は{theme}テーマです。',
+    'appearance.theme.light': 'ライト',
+    'appearance.theme.dark': 'ダーク',
 
     'popup.status': 'ローカルプロフィールは準備できています。送信前に結果を確認してください。',
     'popup.openSidebar': '入力パネルを開く',
     'popup.openOptions': 'プロフィールライブラリを管理',
     'popup.openHelp': '使い方',
-    'popup.footerHint': 'まずページ項目をスキャンし、入力後に確認します。',
 
     'sidebar.tab.fill': '入力',
     'sidebar.tab.result': '結果',
@@ -749,7 +805,6 @@ const dictionaries: Dictionaries = {
     'sidebar.help.faq.review.a': 'ATS ごとに項目名や選択肢の値が異なります。結果は可視化されますが、最終送信前の確認は必ず行ってください。',
     'sidebar.help.faq.privacy.q': 'データはアップロードされますか？',
     'sidebar.help.faq.privacy.a': 'プロフィールと API Key はブラウザー内に保存されます。AI 機能使用時のみ、必要な文脈が設定済みのモデル提供元へ送信されます。',
-    'sidebar.footer.version': 'Resume Bridge v1.0.0',
 
     'qa.status.generating': '回答を生成しています...',
     'qa.status.needModel': '先に AI モデルを設定してください。',
@@ -776,6 +831,7 @@ const dictionaries: Dictionaries = {
     'options.nav.ai': 'AI モデル',
     'options.nav.resume': '履歴書インポート',
     'options.nav.backup': 'バックアップ',
+    'options.nav.settings': '設定',
     'options.nav.help': 'ヘルプ',
     'options.nav.subtitle': '応募プロフィール',
     'options.save.personal': '個人情報を保存しました。',
@@ -931,13 +987,23 @@ const dictionaries: Dictionaries = {
     'options.backup.tip.2': 'ブラウザーやデバイスを変更する前にエクスポートしてください。',
     'options.backup.tip.3': 'バックアップには個人情報が含まれます。安全に保管してください。',
 
+    'options.settings.title': '拡張機能の設定',
+    'options.settings.desc': '表示言語とテーマを一度設定すると、ポップアップ、サイドパネル、プロフィールライブラリに反映されます。',
+    'options.settings.languageTitle': '表示言語',
+    'options.settings.languageDesc': '初回利用時はブラウザー言語を自動検出します。ここでいつでも変更できます。',
+    'options.settings.appearanceTitle': 'テーマモード',
+    'options.settings.appearanceDesc': '標準ではシステムに合わせます。ライトまたはダークに固定することもできます。',
+    'options.settings.scopeTitle': '適用範囲',
+    'options.settings.scopeDesc': '言語と表示は拡張機能の UI のみ変更します。プロフィール、AI 設定、バックアップは変更されません。',
+
     'options.help.title': '使い方',
     'options.help.desc': '初回設定から送信前レビューまでの手順です。',
     'options.help.aboutTitle': 'Resume Bridge について',
-    'options.help.aboutDesc': 'インターン、新卒採用、中途採用に使えるオープンソースのオンライン応募アシスタントです。',
+    'options.help.aboutDesc': 'インターン、若手向け求人、経験者採用に使えるオープンソースのオンライン応募アシスタントです。',
     'options.help.githubDesc': 'ソースコード、Issue、リリースは GitHub で公開しています。',
-    'options.help.languageTitle': '表示言語',
-    'options.help.languageDesc': '拡張機能とヘルプで使う言語を選択します。',
+    'options.help.trustTitle': 'ローカル保存と送信前確認',
+    'options.help.trustDesc':
+      'プロフィールはブラウザー内に保存されます。Resume Bridge は対応項目を入力し、最終確認と送信はあなたが行います。',
     'options.help.step1.title': '1. プロフィールライブラリを作る',
     'options.help.step1.desc': '個人情報、学歴、職務・プロジェクト経験を入力します。電話、メール、希望職種、入社可能日は優先して補完しましょう。',
     'options.help.step2.title': '2. 履歴書インポートで入力を短縮',
@@ -972,7 +1038,25 @@ const dictionaries: Dictionaries = {
 dictionaries.zh = { ...dictionaries.en, ...dictionaries.zh };
 dictionaries.ja = { ...dictionaries.en, ...dictionaries.ja };
 
-let currentLanguage: Language = 'en';
+function normalizeLanguage(value: unknown): Language | null {
+  return value === 'zh' || value === 'ja' || value === 'en' ? value : null;
+}
+
+function detectBrowserLanguage(): Language {
+  const chromeLanguage = globalThis.chrome?.i18n?.getUILanguage?.();
+  const candidates = [
+    chromeLanguage,
+    ...(globalThis.navigator?.languages ?? []),
+    globalThis.navigator?.language,
+  ].filter(Boolean) as string[];
+
+  const normalized = candidates.map((language) => language.toLowerCase());
+  if (normalized.some((language) => language.startsWith('zh'))) return 'zh';
+  if (normalized.some((language) => language.startsWith('ja'))) return 'ja';
+  return 'en';
+}
+
+let currentLanguage: Language = detectBrowserLanguage();
 const subscribers = new Set<() => void>();
 let initialized = false;
 
@@ -980,19 +1064,15 @@ function getChromeStorage() {
   return globalThis.chrome?.storage?.local;
 }
 
-function normalizeLanguage(value: unknown): Language {
-  return value === 'zh' || value === 'ja' || value === 'en' ? value : 'en';
-}
-
 function notify() {
   subscribers.forEach((subscriber) => subscriber());
 }
 
-function readFallbackLanguage(): Language {
+function readFallbackLanguage(): Language | null {
   try {
     return normalizeLanguage(globalThis.localStorage?.getItem(LANGUAGE_KEY));
   } catch {
-    return 'en';
+    return null;
   }
 }
 
@@ -1006,15 +1086,15 @@ function writeFallbackLanguage(language: Language) {
 
 async function readStoredLanguage(): Promise<Language> {
   const storage = getChromeStorage();
-  if (!storage) return readFallbackLanguage();
+  if (!storage) return readFallbackLanguage() ?? detectBrowserLanguage();
 
   return new Promise((resolve) => {
     storage.get(LANGUAGE_KEY, (result) => {
       if (globalThis.chrome?.runtime?.lastError) {
-        resolve(readFallbackLanguage());
+        resolve(readFallbackLanguage() ?? detectBrowserLanguage());
         return;
       }
-      resolve(normalizeLanguage(result?.[LANGUAGE_KEY]));
+      resolve(normalizeLanguage(result?.[LANGUAGE_KEY]) ?? readFallbackLanguage() ?? detectBrowserLanguage());
     });
   });
 }

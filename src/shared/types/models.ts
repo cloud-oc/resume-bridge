@@ -74,10 +74,10 @@ export interface Education {
   updatedAt: string;
 }
 
-/** 工作 / 实习 / 项目 / 科研 / 校园经历 */
+/** 工作 / 实习 / 项目 / 科研 / 活动经历 */
 export interface Experience {
   id: string;
-  type: '工作' | '实习' | '项目' | '科研' | '校园' | '竞赛' | '其他';
+  type: '工作' | '实习' | '项目' | '科研' | '活动' | '竞赛' | '其他';
   organization: string; // 公司/组织名称
   role: string; // 岗位/角色
   startDate: string;

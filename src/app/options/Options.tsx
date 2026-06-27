@@ -10,11 +10,15 @@ import {
   importAllData,
 } from '@/core/storage/db';
 import { BrandMark, ProductIcon, type ProductIconName } from '@/shared/components/ProductIcons';
-import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import {
+  AppearanceSwitcher,
+  HeaderSettingsMenu,
+  LanguageSwitcher,
+} from '@/shared/components/LanguageSwitcher';
 import { useLanguage } from '@/shared/i18n';
 import './Options.css';
 
-type PageType = 'personal' | 'education' | 'experience' | 'ai' | 'resume' | 'backup' | 'help';
+type PageType = 'personal' | 'education' | 'experience' | 'ai' | 'resume' | 'backup' | 'settings' | 'help';
 
 const ResumeUpload = lazy(() => import('./ResumeUpload'));
 
@@ -27,6 +31,7 @@ const optionsNavItems: { key: PageType; icon: ProductIconName; labelKey: string 
   { key: 'ai', icon: 'settings', labelKey: 'options.nav.ai' },
   { key: 'resume', icon: 'resume', labelKey: 'options.nav.resume' },
   { key: 'backup', icon: 'backup', labelKey: 'options.nav.backup' },
+  { key: 'settings', icon: 'settings', labelKey: 'options.nav.settings' },
   { key: 'help', icon: 'help', labelKey: 'options.nav.help' },
 ];
 
@@ -128,6 +133,10 @@ export default function Options() {
   const selectPage = (page: PageType) => {
     setActivePage(page);
     window.history.replaceState(null, '', `#${page}`);
+  };
+
+  const openGitHub = () => {
+    window.open(GITHUB_URL, '_blank', 'noopener,noreferrer');
   };
 
   // 保存个人信息
@@ -236,13 +245,16 @@ export default function Options() {
       {/* 侧边导航 */}
       <nav className="options-nav">
         <div className="options-nav-header">
-          <span className="options-nav-logo" aria-hidden="true">
-            <BrandMark />
-          </span>
-          <div>
-            <h1>{t('app.name')}</h1>
-            <p>{t('options.nav.subtitle')}</p>
+          <div className="options-nav-brand">
+            <span className="options-nav-logo" aria-hidden="true">
+              <BrandMark />
+            </span>
+            <div>
+              <h1>{t('app.name')}</h1>
+              <p>{t('options.nav.subtitle')}</p>
+            </div>
           </div>
+          <HeaderSettingsMenu onOpenSettingsPage={() => selectPage('settings')} />
         </div>
         <div className="options-nav-items">
           {optionsNavItems.map((item) => (
@@ -259,7 +271,7 @@ export default function Options() {
           ))}
         </div>
         <div className="options-nav-footer">
-          <LanguageSwitcher compact className="options-nav-language" />
+          <button type="button" onClick={openGitHub}>{t('app.github')}</button>
           <span>{t('app.copyright')}</span>
         </div>
       </nav>
@@ -564,7 +576,7 @@ export default function Options() {
                         <option value="实习">实习</option>
                         <option value="项目">项目</option>
                         <option value="科研">科研</option>
-                        <option value="校园">校园</option>
+                        <option value="活动">活动</option>
                         <option value="竞赛">竞赛</option>
                         <option value="其他">其他</option>
                       </select>
@@ -798,6 +810,42 @@ export default function Options() {
           </div>
         )}
 
+        {activePage === 'settings' && (
+          <div className="options-section settings-page">
+            <h2>{t('options.settings.title')}</h2>
+            <p className="options-desc">{t('options.settings.desc')}</p>
+
+            <div className="settings-grid">
+              <section className="settings-card">
+                <div className="settings-card-copy">
+                  <ProductIcon name="settings" className="settings-card-icon" />
+                  <div>
+                    <h3>{t('options.settings.languageTitle')}</h3>
+                    <p>{t('options.settings.languageDesc')}</p>
+                  </div>
+                </div>
+                <LanguageSwitcher showLabel className="settings-control" />
+              </section>
+
+              <section className="settings-card">
+                <div className="settings-card-copy">
+                  <ProductIcon name="shield" className="settings-card-icon" />
+                  <div>
+                    <h3>{t('options.settings.appearanceTitle')}</h3>
+                    <p>{t('options.settings.appearanceDesc')}</p>
+                  </div>
+                </div>
+                <AppearanceSwitcher showLabel className="settings-control" />
+              </section>
+            </div>
+
+            <section className="settings-scope">
+              <h3>{t('options.settings.scopeTitle')}</h3>
+              <p>{t('options.settings.scopeDesc')}</p>
+            </section>
+          </div>
+        )}
+
         {activePage === 'help' && (
           <div className="options-section help-page">
             <div className="options-section-header">
@@ -825,10 +873,10 @@ export default function Options() {
                   </div>
                 </div>
               </div>
-              <div className="help-language-card">
-                <h3>{t('options.help.languageTitle')}</h3>
-                <p>{t('options.help.languageDesc')}</p>
-                <LanguageSwitcher showLabel className="options-help-language" />
+              <div className="help-trust-card">
+                <ProductIcon name="shield" className="help-trust-icon" />
+                <h3>{t('options.help.trustTitle')}</h3>
+                <p>{t('options.help.trustDesc')}</p>
               </div>
             </section>
 

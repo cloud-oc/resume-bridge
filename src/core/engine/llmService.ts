@@ -266,7 +266,7 @@ ${resumeText.substring(0, 5000)}
   ],
   "experiences": [
     {
-      "type": "工作/实习/项目/科研/校园",
+      "type": "工作/实习/项目/科研/活动",
       "organization": "公司/组织",
       "role": "岗位/角色",
       "startDate": "YYYY-MM",
