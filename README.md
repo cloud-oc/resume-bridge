@@ -12,10 +12,6 @@
 
 > Open-source online application form assistant. Resume Bridge keeps profile data, resume import, field matching, and open-answer drafting inside a reviewable browser extension so candidates can spend less time on repetitive entry while keeping control before submission.
 
-Project: [github.com/cloud-oc/resume-bridge](https://github.com/cloud-oc/resume-bridge)
-
-Copyright: ©Cloud09
-
 ## Name
 
 `Resume Bridge` describes the product's job: connecting a candidate's prepared resume material to fragmented, repetitive, and format-inconsistent online application forms. It is not designed to blindly submit applications. It helps organize material, locate fields, fill content, and preserve the user's final review.
@@ -33,8 +29,6 @@ GitHub repository and package name: `resume-bridge`.
 | ATS platform profiles | Includes adapters for Beisen, Moka, Zhaopin, Nowcoder, 51job, Greenhouse, and more |
 | Local profile library | Personal info, experience material, and API keys stay in local browser storage |
 | Backup and restore | Export or import the full profile library as JSON |
-| Multilingual UI | Extension shell and help content support English, Chinese, and Japanese |
-| Firefox packaging | Builds Chromium packages and Firefox WebExtension packages |
 
 ## Tech Stack
 

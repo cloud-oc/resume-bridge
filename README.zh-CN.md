@@ -12,10 +12,6 @@
 
 > 开源网申填写助手。它把个人资料、简历导入、字段匹配和开放题草稿放进一个可复核的浏览器扩展里，帮助求职者少做重复录入，并保留提交前的判断权。
 
-项目地址：[github.com/cloud-oc/resume-bridge](https://github.com/cloud-oc/resume-bridge)
-
-版权：©Cloud09
-
 ## 名称
 
 `Resume Bridge` 表示它把候选人已经整理好的简历资料，稳稳连接到分散、重复、格式各异的网申表单中。它的重点不是替用户盲目提交，而是帮助组织材料、定位字段、填充内容，并保留提交前的复核权。
@@ -33,8 +29,6 @@ GitHub 仓库名与插件包名：`resume-bridge`。
 | ATS 系统适配 | 适配北森、Moka、智联、牛客、前程无忧、Greenhouse 等平台 |
 | 本地资料库 | 个人资料、经历素材与 API Key 均存储在浏览器本地 |
 | 备份恢复 | JSON 格式导出或导入全部资料 |
-| 多语言界面 | 插件外壳和帮助内容支持英文、中文、日文 |
-| Firefox 打包 | 支持 Chromium 与 Firefox WebExtension 两类插件产物 |
 
 ## 技术栈
 
