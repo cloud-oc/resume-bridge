@@ -12,12 +12,6 @@
 
 > Open-source online application form assistant. Resume Bridge keeps profile data, resume import, field matching, and open-answer drafting inside a reviewable browser extension so candidates can spend less time on repetitive entry while keeping control before submission.
 
-## Name
-
-`Resume Bridge` describes the product's job: connecting a candidate's prepared resume material to fragmented, repetitive, and format-inconsistent online application forms. It is not designed to blindly submit applications. It helps organize material, locate fields, fill content, and preserve the user's final review.
-
-GitHub repository and package name: `resume-bridge`.
-
 ## Core Features
 
 | Feature | Description |
