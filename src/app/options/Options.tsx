@@ -10,15 +10,10 @@ import {
   importAllData,
 } from '@/core/storage/db';
 import { BrandMark, ProductIcon, type ProductIconName } from '@/shared/components/ProductIcons';
-import {
-  AppearanceSwitcher,
-  HeaderSettingsMenu,
-  LanguageSwitcher,
-} from '@/shared/components/LanguageSwitcher';
 import { useLanguage } from '@/shared/i18n';
 import './Options.css';
 
-type PageType = 'personal' | 'education' | 'experience' | 'ai' | 'resume' | 'backup' | 'settings' | 'help';
+type PageType = 'personal' | 'education' | 'experience' | 'ai' | 'resume' | 'backup' | 'help';
 
 const ResumeUpload = lazy(() => import('./ResumeUpload'));
 
@@ -31,7 +26,6 @@ const optionsNavItems: { key: PageType; icon: ProductIconName; labelKey: string 
   { key: 'ai', icon: 'settings', labelKey: 'options.nav.ai' },
   { key: 'resume', icon: 'resume', labelKey: 'options.nav.resume' },
   { key: 'backup', icon: 'backup', labelKey: 'options.nav.backup' },
-  { key: 'settings', icon: 'settings', labelKey: 'options.nav.settings' },
   { key: 'help', icon: 'help', labelKey: 'options.nav.help' },
 ];
 
@@ -245,16 +239,13 @@ export default function Options() {
       {/* 侧边导航 */}
       <nav className="options-nav">
         <div className="options-nav-header">
-          <div className="options-nav-brand">
-            <span className="options-nav-logo" aria-hidden="true">
-              <BrandMark />
-            </span>
-            <div>
-              <h1>{t('app.name')}</h1>
-              <p>{t('options.nav.subtitle')}</p>
-            </div>
+          <span className="options-nav-logo" aria-hidden="true">
+            <BrandMark />
+          </span>
+          <div>
+            <h1>{t('app.name')}</h1>
+            <p>{t('options.nav.subtitle')}</p>
           </div>
-          <HeaderSettingsMenu onOpenSettingsPage={() => selectPage('settings')} />
         </div>
         <div className="options-nav-items">
           {optionsNavItems.map((item) => (
@@ -807,42 +798,6 @@ export default function Options() {
                 <li>{t('options.backup.tip.3')}</li>
               </ul>
             </div>
-          </div>
-        )}
-
-        {activePage === 'settings' && (
-          <div className="options-section settings-page">
-            <h2>{t('options.settings.title')}</h2>
-            <p className="options-desc">{t('options.settings.desc')}</p>
-
-            <div className="settings-grid">
-              <section className="settings-card">
-                <div className="settings-card-copy">
-                  <ProductIcon name="settings" className="settings-card-icon" />
-                  <div>
-                    <h3>{t('options.settings.languageTitle')}</h3>
-                    <p>{t('options.settings.languageDesc')}</p>
-                  </div>
-                </div>
-                <LanguageSwitcher showLabel className="settings-control" />
-              </section>
-
-              <section className="settings-card">
-                <div className="settings-card-copy">
-                  <ProductIcon name="shield" className="settings-card-icon" />
-                  <div>
-                    <h3>{t('options.settings.appearanceTitle')}</h3>
-                    <p>{t('options.settings.appearanceDesc')}</p>
-                  </div>
-                </div>
-                <AppearanceSwitcher showLabel className="settings-control" />
-              </section>
-            </div>
-
-            <section className="settings-scope">
-              <h3>{t('options.settings.scopeTitle')}</h3>
-              <p>{t('options.settings.scopeDesc')}</p>
-            </section>
           </div>
         )}
 

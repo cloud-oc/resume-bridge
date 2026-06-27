@@ -152,7 +152,7 @@ export default function Sidebar() {
         </div>
         <div className="sidebar-header-actions">
           <div className="sidebar-trust">{t('app.localStorage')}</div>
-          <HeaderSettingsMenu onOpenSettingsPage={() => openOptionsPage('settings')} />
+          <HeaderSettingsMenu />
         </div>
       </header>
 

@@ -23,18 +23,9 @@
 .options-nav-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 11px;
   padding: 20px 16px 18px;
   border-bottom: 1px solid color-mix(in oklch, var(--ca-text-on-strong), transparent 86%);
-  overflow: visible;
-}
-
-.options-nav-brand {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 11px;
 }
 
 .options-nav-logo {
@@ -364,72 +355,6 @@
   color: var(--ca-text-secondary);
 }
 
-.settings-page {
-  max-width: 880px;
-}
-
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-.settings-card,
-.settings-scope {
-  padding: 16px;
-  background: var(--ca-surface);
-  border: 1px solid var(--ca-border);
-  border-radius: var(--ca-radius-lg);
-  box-shadow: var(--ca-shadow);
-}
-
-.settings-card {
-  display: flex;
-  min-height: 210px;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.settings-card-copy {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.settings-card-icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  color: var(--ca-primary-hover);
-}
-
-.settings-card h3,
-.settings-scope h3 {
-  margin: 0 0 7px;
-  font-size: 15px;
-  font-weight: 760;
-}
-
-.settings-card p,
-.settings-scope p {
-  margin: 0;
-  color: var(--ca-text-secondary);
-  font-size: 13px;
-  line-height: 1.65;
-  text-wrap: pretty;
-}
-
-.settings-control {
-  align-items: flex-start;
-}
-
-.settings-scope {
-  margin-top: 16px;
-  background: color-mix(in oklch, var(--ca-primary-soft), var(--ca-surface) 70%);
-  border-color: var(--ca-primary-border);
-}
-
 .help-page {
   max-width: 980px;
 }
@@ -646,7 +571,6 @@
 
   .options-nav-header h1,
   .options-nav-header p,
-  .options-nav-header .header-settings-menu,
   .options-nav-item-label,
   .options-nav-footer {
     display: none;

@@ -68,10 +68,9 @@ export function AppearanceSwitcher({ className = '', showLabel = false }: Appear
 
 interface HeaderSettingsMenuProps {
   className?: string;
-  onOpenSettingsPage?: () => void;
 }
 
-export function HeaderSettingsMenu({ className = '', onOpenSettingsPage }: HeaderSettingsMenuProps) {
+export function HeaderSettingsMenu({ className = '' }: HeaderSettingsMenuProps) {
   const { t } = useLanguage();
 
   return (
@@ -98,12 +97,6 @@ export function HeaderSettingsMenu({ className = '', onOpenSettingsPage }: Heade
           </div>
           <AppearanceSwitcher />
         </section>
-        {onOpenSettingsPage && (
-          <button type="button" className="header-settings-link" onClick={onOpenSettingsPage}>
-            <ProductIcon name="external" />
-            {t('settings.openSettingsPage')}
-          </button>
-        )}
       </div>
     </details>
   );

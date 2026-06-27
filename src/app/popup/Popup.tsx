@@ -22,11 +22,6 @@ export default function Popup() {
     window.close();
   };
 
-  const handleOpenSettings = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('pages/options.html#settings') });
-    window.close();
-  };
-
   const handleOpenHelp = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('pages/options.html#help') });
     window.close();
@@ -49,7 +44,7 @@ export default function Popup() {
             <p className="popup-subtitle">{t('app.productTagline')}</p>
           </div>
         </div>
-        <HeaderSettingsMenu onOpenSettingsPage={handleOpenSettings} />
+        <HeaderSettingsMenu />
       </div>
 
       <div className="popup-actions">
