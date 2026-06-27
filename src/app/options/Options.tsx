@@ -10,20 +10,24 @@ import {
   importAllData,
 } from '@/core/storage/db';
 import { BrandMark, ProductIcon, type ProductIconName } from '@/shared/components/ProductIcons';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { useLanguage } from '@/shared/i18n';
 import './Options.css';
 
 type PageType = 'personal' | 'education' | 'experience' | 'ai' | 'resume' | 'backup' | 'help';
 
 const ResumeUpload = lazy(() => import('./ResumeUpload'));
 
-const optionsNavItems: { key: PageType; icon: ProductIconName; label: string }[] = [
-  { key: 'personal', icon: 'user', label: '基础信息' },
-  { key: 'education', icon: 'education', label: '教育经历' },
-  { key: 'experience', icon: 'briefcase', label: '工作/项目经历' },
-  { key: 'ai', icon: 'settings', label: 'AI 模型配置' },
-  { key: 'resume', icon: 'resume', label: '简历解析' },
-  { key: 'backup', icon: 'backup', label: '数据备份' },
-  { key: 'help', icon: 'help', label: '使用帮助' },
+const GITHUB_URL = 'https://github.com/cloud-oc/resume-bridge';
+
+const optionsNavItems: { key: PageType; icon: ProductIconName; labelKey: string }[] = [
+  { key: 'personal', icon: 'user', labelKey: 'options.nav.personal' },
+  { key: 'education', icon: 'education', labelKey: 'options.nav.education' },
+  { key: 'experience', icon: 'briefcase', labelKey: 'options.nav.experience' },
+  { key: 'ai', icon: 'settings', labelKey: 'options.nav.ai' },
+  { key: 'resume', icon: 'resume', labelKey: 'options.nav.resume' },
+  { key: 'backup', icon: 'backup', labelKey: 'options.nav.backup' },
+  { key: 'help', icon: 'help', labelKey: 'options.nav.help' },
 ];
 
 function createEmptyPersonalInfo(): PersonalInfo {
@@ -80,6 +84,7 @@ function createEmptyExperience(): Experience {
 }
 
 export default function Options() {
+  const { t } = useLanguage();
   const [activePage, setActivePage] = useState<PageType>(() => {
     const hash = window.location.hash.replace('#', '') as PageType;
     return optionsNavItems.some((item) => item.key === hash) ? hash : 'personal';
@@ -130,7 +135,7 @@ export default function Options() {
     const updated = { ...personalInfo, updatedAt: new Date().toISOString() };
     await personalInfoDB.save(updated);
     setPersonalInfo(updated);
-    setSaveStatus('✅ 个人信息已保存');
+    setSaveStatus(t('options.save.personal'));
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
@@ -139,7 +144,7 @@ export default function Options() {
     const updated = { ...edu, updatedAt: new Date().toISOString() };
     await educationDB.save(updated);
     await loadData();
-    setSaveStatus('✅ 教育经历已保存');
+    setSaveStatus(t('options.save.education'));
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
@@ -148,13 +153,13 @@ export default function Options() {
     const updated = { ...exp, updatedAt: new Date().toISOString() };
     await experienceDB.save(updated);
     await loadData();
-    setSaveStatus('✅ 经历已保存');
+    setSaveStatus(t('options.save.experience'));
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
   // 删除教育经历
   const deleteEducation = async (id: string) => {
-    if (confirm('确定删除该教育经历吗？')) {
+    if (confirm(t('options.confirm.deleteEducation'))) {
       await educationDB.delete(id);
       await loadData();
     }
@@ -162,7 +167,7 @@ export default function Options() {
 
   // 删除经历
   const deleteExperience = async (id: string) => {
-    if (confirm('确定删除该经历吗？')) {
+    if (confirm(t('options.confirm.deleteExperience'))) {
       await experienceDB.delete(id);
       await loadData();
     }
@@ -180,7 +185,7 @@ export default function Options() {
     }
     await aiConfigDB.save(config);
     await loadData();
-    setSaveStatus('✅ AI 配置已保存');
+    setSaveStatus(t('options.save.ai'));
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
@@ -194,7 +199,7 @@ export default function Options() {
     a.download = `resume-bridge-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setSaveStatus('✅ 数据已导出');
+    setSaveStatus(t('options.save.export'));
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
@@ -210,17 +215,17 @@ export default function Options() {
         const text = await file.text();
         const data = JSON.parse(text);
         if (!data.version) {
-          alert('无效的备份文件');
+          alert(t('options.alert.invalidBackup'));
           return;
         }
-        if (confirm('导入将覆盖所有现有数据，确定继续吗？')) {
+        if (confirm(t('options.confirm.import'))) {
           await importAllData(data);
           await loadData();
-          setSaveStatus('✅ 数据已成功恢复');
+          setSaveStatus(t('options.save.import'));
           setTimeout(() => setSaveStatus(''), 2000);
         }
       } catch {
-        alert('文件解析失败，请确认文件格式正确');
+        alert(t('options.alert.importFailed'));
       }
     };
     input.click();
@@ -235,8 +240,8 @@ export default function Options() {
             <BrandMark />
           </span>
           <div>
-            <h1>Resume Bridge</h1>
-            <p>申请资料库</p>
+            <h1>{t('app.name')}</h1>
+            <p>{t('options.nav.subtitle')}</p>
           </div>
         </div>
         <div className="options-nav-items">
@@ -249,9 +254,13 @@ export default function Options() {
               <span className="options-nav-item-icon">
                 <ProductIcon name={item.icon} />
               </span>
-              <span className="options-nav-item-label">{item.label}</span>
+              <span className="options-nav-item-label">{t(item.labelKey)}</span>
             </button>
           ))}
+        </div>
+        <div className="options-nav-footer">
+          <LanguageSwitcher compact className="options-nav-language" />
+          <span>{t('app.copyright')}</span>
         </div>
       </nav>
 
@@ -262,59 +271,59 @@ export default function Options() {
         {/* ===== 基础信息 ===== */}
         {activePage === 'personal' && (
           <div className="options-section">
-            <h2>个人基础信息</h2>
-            <p className="options-desc">维护会被频繁复用的基础资料，填充前仍建议逐项复核。</p>
+            <h2>{t('options.personal.title')}</h2>
+            <p className="options-desc">{t('options.personal.desc')}</p>
 
             <div className="options-form-grid">
               <div className="ca-form-group">
-                <label className="ca-label required">姓名</label>
+                <label className="ca-label required">{t('options.personal.name')}</label>
                 <input className="ca-input" value={personalInfo.name}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
-                  placeholder="请输入真实姓名" />
+                  placeholder={t('options.personal.namePlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">英文名</label>
+                <label className="ca-label">{t('options.personal.englishName')}</label>
                 <input className="ca-input" value={personalInfo.nameEn || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, nameEn: e.target.value })}
                   placeholder="English Name" />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label required">性别</label>
+                <label className="ca-label required">{t('options.personal.gender')}</label>
                 <select className="ca-input ca-select" value={personalInfo.gender}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, gender: e.target.value as PersonalInfo['gender'] })}>
-                  <option value="">请选择</option>
+                  <option value="">{t('options.personal.select')}</option>
                   <option value="男">男</option>
                   <option value="女">女</option>
                 </select>
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">出生日期</label>
+                <label className="ca-label">{t('options.personal.birthDate')}</label>
                 <input className="ca-input" type="date" value={personalInfo.birthDate}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, birthDate: e.target.value })} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label required">手机号码</label>
+                <label className="ca-label required">{t('options.personal.phone')}</label>
                 <input className="ca-input" value={personalInfo.phone}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
-                  placeholder="请输入手机号" />
+                  placeholder={t('options.personal.phonePlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label required">电子邮箱</label>
+                <label className="ca-label required">{t('options.personal.email')}</label>
                 <input className="ca-input" type="email" value={personalInfo.email}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
-                  placeholder="请输入邮箱" />
+                  placeholder={t('options.personal.emailPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">民族</label>
+                <label className="ca-label">{t('options.personal.ethnicity')}</label>
                 <input className="ca-input" value={personalInfo.ethnicity || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, ethnicity: e.target.value })}
-                  placeholder="如：汉族" />
+                  placeholder={t('options.personal.ethnicityPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">政治面貌</label>
+                <label className="ca-label">{t('options.personal.political')}</label>
                 <select className="ca-input ca-select" value={personalInfo.politicalStatus || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, politicalStatus: e.target.value })}>
-                  <option value="">请选择</option>
+                  <option value="">{t('options.personal.select')}</option>
                   <option value="群众">群众</option>
                   <option value="共青团员">共青团员</option>
                   <option value="中共党员">中共党员</option>
@@ -322,24 +331,24 @@ export default function Options() {
                 </select>
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">籍贯</label>
+                <label className="ca-label">{t('options.personal.nativePlace')}</label>
                 <input className="ca-input" value={personalInfo.nativePlace || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, nativePlace: e.target.value })}
-                  placeholder="如：广东省广州市" />
+                  placeholder={t('options.personal.nativePlacePlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">现居城市</label>
+                <label className="ca-label">{t('options.personal.currentCity')}</label>
                 <input className="ca-input" value={personalInfo.currentCity || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, currentCity: e.target.value })}
-                  placeholder="如：北京市" />
+                  placeholder={t('options.personal.currentCityPlaceholder')} />
               </div>
             </div>
 
             <div className="ca-divider" />
-            <h3>社交账号</h3>
+            <h3>{t('options.personal.social')}</h3>
             <div className="options-form-grid">
               <div className="ca-form-group">
-                <label className="ca-label">微信号</label>
+                <label className="ca-label">{t('options.personal.wechat')}</label>
                 <input className="ca-input" value={personalInfo.wechat || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, wechat: e.target.value })} />
               </div>
@@ -347,54 +356,54 @@ export default function Options() {
                 <label className="ca-label">LinkedIn</label>
                 <input className="ca-input" value={personalInfo.linkedin || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, linkedin: e.target.value })}
-                  placeholder="LinkedIn 主页链接" />
+                  placeholder={t('options.personal.linkedinPlaceholder')} />
               </div>
               <div className="ca-form-group">
                 <label className="ca-label">GitHub</label>
                 <input className="ca-input" value={personalInfo.github || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, github: e.target.value })}
-                  placeholder="GitHub 主页链接" />
+                  placeholder={t('options.personal.githubPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">作品集</label>
+                <label className="ca-label">{t('options.personal.portfolio')}</label>
                 <input className="ca-input" value={personalInfo.portfolio || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, portfolio: e.target.value })}
-                  placeholder="作品集链接" />
+                  placeholder={t('options.personal.portfolioPlaceholder')} />
               </div>
             </div>
 
             <div className="ca-divider" />
-            <h3>求职意向</h3>
+            <h3>{t('options.personal.intent')}</h3>
             <div className="options-form-grid">
               <div className="ca-form-group">
-                <label className="ca-label">意向城市</label>
+                <label className="ca-label">{t('options.personal.targetCities')}</label>
                 <input className="ca-input"
                   value={personalInfo.targetCities.join(', ')}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, targetCities: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                  placeholder="如：北京, 上海, 深圳（用逗号分隔）" />
+                  placeholder={t('options.personal.targetCitiesPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">意向岗位</label>
+                <label className="ca-label">{t('options.personal.targetPositions')}</label>
                 <input className="ca-input"
                   value={personalInfo.targetPositions.join(', ')}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, targetPositions: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                  placeholder="如：产品经理, 数据分析（用逗号分隔）" />
+                  placeholder={t('options.personal.targetPositionsPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">期望薪资</label>
+                <label className="ca-label">{t('options.personal.expectedSalary')}</label>
                 <input className="ca-input" value={personalInfo.expectedSalary || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, expectedSalary: e.target.value })}
-                  placeholder="如：15K-25K" />
+                  placeholder={t('options.personal.expectedSalaryPlaceholder')} />
               </div>
               <div className="ca-form-group">
-                <label className="ca-label">可到岗日期</label>
+                <label className="ca-label">{t('options.personal.availableDate')}</label>
                 <input className="ca-input" type="date" value={personalInfo.availableDate || ''}
                   onChange={(e) => setPersonalInfo({ ...personalInfo, availableDate: e.target.value })} />
               </div>
             </div>
 
             <button className="ca-btn ca-btn-primary ca-btn-lg" onClick={savePersonalInfo} style={{ marginTop: '16px' }}>
-              保存个人信息
+              {t('options.personal.save')}
             </button>
           </div>
         )}

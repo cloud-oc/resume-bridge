@@ -1,8 +1,14 @@
 import './Popup.css';
 import { openExtensionSidebar } from '@/shared/browser/extensionApi';
 import { BrandMark, ProductIcon } from '@/shared/components/ProductIcons';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { useLanguage } from '@/shared/i18n';
+
+const GITHUB_URL = 'https://github.com/cloud-oc/resume-bridge';
 
 export default function Popup() {
+  const { t } = useLanguage();
+
   const handleOpenSidebar = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {
@@ -21,6 +27,11 @@ export default function Popup() {
     window.close();
   };
 
+  const handleOpenGitHub = () => {
+    chrome.tabs.create({ url: GITHUB_URL });
+    window.close();
+  };
+
   return (
     <div className="popup">
       <div className="popup-header">
@@ -28,33 +39,38 @@ export default function Popup() {
           <BrandMark />
         </span>
         <div>
-          <h1 className="popup-title">Resume Bridge</h1>
-          <p className="popup-subtitle">网申填写助手 v1.0.0</p>
+          <h1 className="popup-title">{t('app.name')}</h1>
+          <p className="popup-subtitle">{t('app.productTagline')} {t('app.version')}</p>
         </div>
       </div>
 
       <div className="popup-actions">
         <div className="popup-status">
           <span className="popup-status-dot" aria-hidden="true" />
-          <span>本地资料库已就绪，填充前请先复核结果</span>
+          <span>{t('popup.status')}</span>
         </div>
         <button className="ca-btn ca-btn-primary ca-btn-block" onClick={handleOpenSidebar}>
           <ProductIcon name="scan" className="ca-btn-icon" />
-          打开智能填充面板
+          {t('popup.openSidebar')}
         </button>
         <button className="ca-btn ca-btn-outline ca-btn-block" onClick={handleOpenOptions}>
           <ProductIcon name="database" className="ca-btn-icon" />
-          管理个人资料库
+          {t('popup.openOptions')}
         </button>
         <button className="ca-btn ca-btn-outline ca-btn-block" onClick={handleOpenHelp}>
           <ProductIcon name="help" className="ca-btn-icon" />
-          使用帮助
+          {t('popup.openHelp')}
         </button>
+        <LanguageSwitcher compact className="popup-language" />
       </div>
 
       <div className="popup-footer">
-        <p>先扫描页面字段，再执行填充。</p>
-        <p className="popup-privacy">所有数据仅存储在本地浏览器中。</p>
+        <p>{t('popup.footerHint')}</p>
+        <p className="popup-privacy">{t('app.privacyLine')}</p>
+        <div className="popup-links">
+          <button type="button" onClick={handleOpenGitHub}>{t('app.github')}</button>
+          <span>{t('app.copyright')}</span>
+        </div>
       </div>
     </div>
   );

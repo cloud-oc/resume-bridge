@@ -56,6 +56,11 @@
   padding: 14px;
 }
 
+.popup-language {
+  justify-content: center;
+  margin-top: 2px;
+}
+
 .popup-status {
   display: flex;
   align-items: flex-start;
@@ -99,4 +104,32 @@
 .popup-privacy {
   color: var(--ca-success);
   font-weight: 650;
+}
+
+.popup-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ca-border);
+}
+
+.popup-links button {
+  padding: 0;
+  color: var(--ca-primary-hover);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.popup-links button:hover {
+  text-decoration: underline;
+}
+
+.popup-links span {
+  color: var(--ca-text-muted);
 }

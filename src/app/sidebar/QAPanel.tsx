@@ -3,6 +3,7 @@ import type { AIModelConfig } from '@/shared/types/models';
 import { aiConfigDB, personalInfoDB, educationDB, experienceDB } from '@/core/storage/db';
 import { llmGenerateAnswer } from '@/core/engine/llmService';
 import { generateUserDataSummary} from '@/core/engine/fillOrchestrator';
+import { useLanguage } from '@/shared/i18n';
 
 interface QAProps {
   onStatusUpdate?: (msg: string) => void;
@@ -10,6 +11,7 @@ interface QAProps {
 
 /** 开放性问题 AI 回答组件 */
 export default function QAPanel({ onStatusUpdate }: QAProps) {
+  const { t } = useLanguage();
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -18,13 +20,13 @@ export default function QAPanel({ onStatusUpdate }: QAProps) {
     if (!question.trim()) return;
 
     setIsGenerating(true);
-    onStatusUpdate?.('正在生成回答...');
+    onStatusUpdate?.(t('qa.status.generating'));
 
     try {
       // 加载配置
       const config = await aiConfigDB.getActive();
       if (!config) {
-        onStatusUpdate?.('❌ 请先配置 AI 模型');
+        onStatusUpdate?.(t('qa.status.needModel'));
         setIsGenerating(false);
         return;
       }
@@ -37,7 +39,7 @@ export default function QAPanel({ onStatusUpdate }: QAProps) {
       ]);
 
       if (!personalInfo?.name) {
-        onStatusUpdate?.('❌ 请先填写个人信息');
+        onStatusUpdate?.(t('qa.status.needProfile'));
         setIsGenerating(false);
         return;
       }
@@ -52,46 +54,46 @@ export default function QAPanel({ onStatusUpdate }: QAProps) {
       const summary = generateUserDataSummary(userData);
       const result = await llmGenerateAnswer(config, question.trim(), summary);
       setAnswer(result);
-      onStatusUpdate?.('✅ 回答已生成');
+      onStatusUpdate?.(t('qa.status.done'));
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '生成失败';
-      onStatusUpdate?.(`❌ ${msg}`);
+      const msg = error instanceof Error ? error.message : t('qa.status.failed');
+      onStatusUpdate?.(msg);
     } finally {
       setIsGenerating(false);
     }
-  }, [question, onStatusUpdate]);
+  }, [question, onStatusUpdate, t]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(answer).then(() => {
-      onStatusUpdate?.('📋 已复制到剪贴板');
+      onStatusUpdate?.(t('qa.status.copied'));
     });
   };
 
   return (
     <div className="qa-panel">
       <div className="ca-card">
-        <h3 style={{ marginBottom: '8px' }}>开放性问题回答</h3>
+        <h3 style={{ marginBottom: '8px' }}>{t('qa.title')}</h3>
         <p style={{ fontSize: '12px', color: 'var(--ca-text-muted)', marginBottom: '12px' }}>
-          输入网申开放题，基于本地资料生成可编辑的初稿。
+          {t('qa.desc')}
         </p>
 
         <div className="ca-form-group">
-          <label className="ca-label">问题</label>
+          <label className="ca-label">{t('qa.question')}</label>
           <textarea
             className="ca-input ca-textarea"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="例如：请简述您的职业规划 / 为什么选择我们公司 / 描述一次teamwork经历"
+            placeholder={t('qa.placeholder')}
             rows={3}
           />
         </div>
 
         <div className="qa-presets">
           {[
-            '请简述您的职业规划',
-            '为什么选择本公司',
-            '你的优缺点是什么',
-            '描述一次解决困难的经历',
+            t('qa.preset.career'),
+            t('qa.preset.company'),
+            t('qa.preset.strength'),
+            t('qa.preset.challenge'),
           ].map((preset) => (
             <button
               key={preset}
@@ -111,10 +113,10 @@ export default function QAPanel({ onStatusUpdate }: QAProps) {
         >
           {isGenerating ? (
             <>
-              <span className="ca-spinner" /> 生成中...
+              <span className="ca-spinner" /> {t('qa.generating')}
             </>
           ) : (
-            '生成回答'
+            t('qa.generate')
           )}
         </button>
       </div>
@@ -122,9 +124,9 @@ export default function QAPanel({ onStatusUpdate }: QAProps) {
       {answer && (
         <div className="ca-card" style={{ marginTop: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h3>生成结果</h3>
+            <h3>{t('qa.result')}</h3>
             <button className="ca-btn ca-btn-outline ca-btn-sm" onClick={handleCopy}>
-              复制
+              {t('qa.copy')}
             </button>
           </div>
           <div className="qa-answer">{answer}</div>

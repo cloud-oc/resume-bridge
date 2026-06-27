@@ -483,6 +483,58 @@ button {
   transform: translateX(-50%) translateY(0);
 }
 
+.language-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-switcher-label {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.language-switcher-options {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 2px;
+  background: var(--ca-surface-raised);
+  border: 1px solid var(--ca-border);
+  border-radius: var(--ca-radius);
+}
+
+.language-switcher-btn {
+  min-width: 34px;
+  min-height: 24px;
+  padding: 4px 8px;
+  color: var(--ca-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ca-radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0;
+  transition: var(--ca-transition);
+}
+
+.language-switcher-btn:hover {
+  color: var(--ca-primary-hover);
+  background: var(--ca-primary-soft);
+}
+
+.language-switcher-btn.active {
+  color: var(--ca-text-on-strong);
+  background: var(--ca-primary);
+}
+
+.language-switcher-btn:focus-visible {
+  outline: 2px solid var(--ca-border-focus);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
