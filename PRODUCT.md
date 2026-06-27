@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Chinese university students and early-career candidates who are completing many campus recruiting applications across fragmented ATS platforms. They usually work under time pressure, copy information from resumes, and need confidence that any automated fill is visible, reversible, and easy to review before submitting.
+Chinese job seekers who are completing many online applications across fragmented ATS platforms, including internships, entry-level roles, lateral moves, and experienced-hire roles. They usually work under time pressure, copy information from resumes, and need confidence that any automated fill is visible, reversible, and easy to review before submitting.
 
 ## Product Purpose
 
@@ -26,7 +26,7 @@ Avoid decorative AI-dashboard cliches: purple/blue gradient surfaces, glassmorph
 - Use calm confidence: the interface should reduce deadline anxiety through structure, clear states, and plain language.
 - Respect privacy by design: local storage and direct AI-provider calls should be visible trust signals, not buried disclaimers.
 - Make repeated work lighter: the most common actions should be obvious, stable, and reachable without hunting.
-- Fit Chinese campus recruiting workflows: copy, labels, examples, and density should match real domestic ATS forms.
+- Fit Chinese online application workflows: copy, labels, examples, and density should match real domestic ATS forms across entry-level and experienced-hire scenarios.
 
 ## Accessibility & Inclusion
 

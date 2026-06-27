@@ -1,6 +1,6 @@
 # Resume Bridge
 
-> AI 驱动的校招网申填写助手。它把个人资料、简历解析、字段匹配和开放题草稿放进一个可复核的 Chrome 扩展里，帮助应届生少做重复录入，多保留提交前的判断权。
+> AI 驱动的网申填写助手。它把个人资料、简历解析、字段匹配和开放题草稿放进一个可复核的浏览器扩展里，帮助求职者少做重复录入，多保留提交前的判断权。
 
 ## 名称
 
@@ -10,7 +10,7 @@ GitHub 仓库名与插件包名：`resume-bridge`。
 
 ## 致谢
 
-本项目基于 [hanjiayuan2025-coder/CampusApply-Agent](https://github.com/hanjiayuan2025-coder/CampusApply-Agent) 的思路与工程基础继续整理和迭代。感谢原作者对校招网申自动填充场景的探索。
+本项目基于 [hanjiayuan2025-coder/CampusApply-Agent](https://github.com/hanjiayuan2025-coder/CampusApply-Agent) 的思路与工程基础继续整理和迭代。感谢原作者对网申自动填充场景的探索。
 
 ## 核心功能
 
@@ -27,7 +27,7 @@ GitHub 仓库名与插件包名：`resume-bridge`。
 ## 技术栈
 
 - **框架**: Vite 6 + React 19 + TypeScript 5
-- **扩展**: Chrome Manifest V3
+- **扩展**: Chromium Manifest V3 / Firefox WebExtensions
 - **存储**: IndexedDB（via idb-keyval 风格封装）
 - **AI**: OpenAI / Claude / 通义千问 / 豆包 / Ollama
 
@@ -36,37 +36,44 @@ GitHub 仓库名与插件包名：`resume-bridge`。
 ### 开发模式
 
 ```bash
-cd extension
 npm install
 npm run dev
 ```
 
-`npm run dev` 会监听构建到 `extension/dist`。修改代码后，在 `chrome://extensions/` 刷新已加载的扩展即可。
+`npm run dev` 会监听构建到 `dist`。修改代码后，在 `chrome://extensions/` 刷新已加载的扩展即可。
 
 ### 生产构建与打包
 
 ```bash
-cd extension
 npm run build
 npm run package
 ```
 
 打包产物位于：
 
-- `extension/release/resume-bridge.crx`
-- `extension/release/resume-bridge.zip`
-- `extension/release/resume-bridge.pem`（开发打包私钥，请保留以稳定扩展 ID）
+- `release/resume-bridge.crx`（Chromium）
+- `release/resume-bridge.zip`（Chromium / 加载已解压前的 zip）
+- `release/resume-bridge-firefox.xpi`（Firefox）
+- `release/resume-bridge-firefox.zip`（Firefox 源包）
+- `release/resume-bridge.pem`（开发打包私钥，请保留以稳定扩展 ID）
 
-### 加载到 Chrome
+### 加载到 Chrome / Edge
 
 1. 打开 `chrome://extensions/`
 2. 开启「开发者模式」
 3. 点击「加载已解压的扩展程序」
-4. 选择 `extension/dist` 目录
+4. 选择 `dist` 目录
+
+### 加载到 Firefox
+
+1. 运行 `npm run package` 生成 Firefox 产物
+2. 打开 `about:debugging#/runtime/this-firefox`
+3. 点击「Load Temporary Add-on」
+4. 选择 `dist-firefox/manifest.json` 或 `release/resume-bridge-firefox.xpi`
 
 ### 使用流程
 
-1. **填写信息**：点击插件图标 → 打开管理页面 → 填写个人信息/教育经历/实习经历
+1. **填写信息**：点击插件图标 → 打开管理页面 → 填写个人信息/教育经历/工作项目经历
 2. **配置 AI**（可选）：在 AI 模型配置页面添加 API Key
 3. **上传简历**（可选）：在简历解析页面上传 PDF 简历，AI 自动提取
 4. **开始填充**：打开网申页面，点击侧边栏「一键智能填充」
@@ -74,7 +81,7 @@ npm run package
 ## 项目结构
 
 ```
-extension/
+.
 ├── pages/                       # popup/sidebar/options HTML 入口
 ├── public/                      # manifest、图标、本地化静态资源
 ├── scripts/                     # 清理、打包脚本

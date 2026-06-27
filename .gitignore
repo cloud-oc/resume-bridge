@@ -1,6 +1,12 @@
 node_modules/
 .DS_Store
 .cursor/
+dist/
+dist-firefox/
+release/*.zip
+release/*.crx
+release/*.xpi
+release/*.pem
 extension/dist/
 extension/release/*.zip
 extension/release/*.crx
