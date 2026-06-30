@@ -39,7 +39,7 @@ globalThis.chrome = {
 };
 globalThis.indexedDB = {};
 
-const { matchSingleField } = await import(pathToFileURL(outfile).href);
+const { matchSingleField, matchAllFields } = await import(pathToFileURL(outfile).href);
 const { __fillOrchestratorTestUtils } = await import(pathToFileURL(orchestratorOutfile).href);
 
 const now = '2026-06-30T00:00:00.000Z';
@@ -90,6 +90,39 @@ const userData = {
       abilityTags: [],
       industryTags: [],
       order: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'x2',
+      type: '实习',
+      organization: '云桥科技',
+      role: '增长产品实习生',
+      startDate: '2025-07-01',
+      endDate: '2025-09-01',
+      description: '负责增长实验设计和漏斗数据分析。',
+      bullets: ['搭建 A/B 测试看板', '定位注册转化瓶颈'],
+      versions: [],
+      abilityTags: [],
+      industryTags: [],
+      order: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'x3',
+      type: '项目',
+      organization: 'Resume Bridge',
+      role: '产品与前端负责人',
+      startDate: '2026-01-01',
+      endDate: '',
+      description: '设计并实现网申智能填充浏览器插件。',
+      bullets: ['完成字段匹配引擎', '支持多语言插件外壳'],
+      techStack: ['React', 'TypeScript'],
+      versions: [],
+      abilityTags: [],
+      industryTags: [],
+      order: 2,
       createdAt: now,
       updatedAt: now,
     },
@@ -168,6 +201,91 @@ const role = match({
 });
 assert.equal(role.value, '产品运营实习生');
 assert.equal(role.matchedRule?.dataPath, 'experience.role');
+
+const repeatedFields = [
+  field({
+    id: 'intern_0_company',
+    label: '公司名称',
+    elementName: 'company',
+    elementId: 'company',
+    sectionContext: '实习经历',
+    groupKey: '实习经历::0',
+    groupIndex: 0,
+  }),
+  field({
+    id: 'intern_0_desc',
+    label: '描述',
+    elementName: 'desc',
+    elementId: 'desc',
+    sectionContext: '实习经历',
+    tagName: 'textarea',
+    groupKey: '实习经历::0',
+    groupIndex: 0,
+  }),
+  field({
+    id: 'intern_1_company',
+    label: '公司名称',
+    elementName: 'company',
+    elementId: 'company',
+    sectionContext: '实习经历',
+    groupKey: '实习经历::1',
+    groupIndex: 1,
+  }),
+  field({
+    id: 'intern_1_desc',
+    label: '描述',
+    elementName: 'desc',
+    elementId: 'desc',
+    sectionContext: '实习经历',
+    tagName: 'textarea',
+    groupKey: '实习经历::1',
+    groupIndex: 1,
+  }),
+  field({
+    id: 'project_0_name',
+    label: '项目名称',
+    elementName: 'projectName',
+    elementId: 'projectName',
+    sectionContext: '项目经历',
+    groupKey: '项目经历::0',
+    groupIndex: 0,
+  }),
+  field({
+    id: 'project_0_desc',
+    label: '描述',
+    elementName: 'desc',
+    elementId: 'desc',
+    sectionContext: '项目经历',
+    tagName: 'textarea',
+    groupKey: '项目经历::0',
+    groupIndex: 0,
+  }),
+  field({
+    id: 'intern_2_desc',
+    label: '描述',
+    elementName: 'desc',
+    elementId: 'desc',
+    sectionContext: '实习经历',
+    tagName: 'textarea',
+    groupKey: '实习经历::2',
+    groupIndex: 2,
+  }),
+];
+
+const repeatedMatches = matchAllFields(repeatedFields, userData);
+const repeatedById = new Map(repeatedMatches.map((item) => [item.fieldId, item]));
+
+assert.equal(repeatedById.get('intern_0_company')?.value, '烽炊网络');
+assert.match(repeatedById.get('intern_0_desc')?.value || '', /网申流程分析/);
+assert.match(repeatedById.get('intern_0_desc')?.value || '', /沉淀字段规则/);
+assert.equal(repeatedById.get('intern_1_company')?.value, '云桥科技');
+assert.match(repeatedById.get('intern_1_desc')?.value || '', /增长实验设计/);
+assert.doesNotMatch(repeatedById.get('intern_1_desc')?.value || '', /网申流程分析/);
+assert.equal(repeatedById.get('project_0_name')?.value, 'Resume Bridge');
+assert.match(repeatedById.get('project_0_desc')?.value || '', /浏览器插件/);
+assert.match(repeatedById.get('project_0_desc')?.value || '', /React、TypeScript/);
+assert.equal(repeatedById.get('intern_2_desc')?.value, '');
+assert.equal(repeatedById.get('intern_2_desc')?.matchedBy, 'none');
 
 const ambiguousDescription = match({
   label: '描述',

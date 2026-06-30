@@ -224,5 +224,9 @@ export interface FormField {
   xpath: string; // XPath 定位
   cssSelector: string; // CSS 选择器
   sectionContext?: string; // 所在模块的上下文
+  groupKey?: string; // 重复表单块的稳定标识，如第 N 段经历
+  groupIndex?: number; // 当前模块内的重复块序号
+  fieldIndexInGroup?: number; // 当前重复块内的字段序号
+  repeatContext?: string; // 重复块附近的补充上下文
   value?: string; // 当前值
 }

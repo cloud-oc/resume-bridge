@@ -34,6 +34,12 @@ export interface UserDataContext {
   skills: SkillInfo[];
 }
 
+interface FieldDataContext {
+  educationIndex?: number | null;
+  experienceIndex?: number | null;
+  experienceTypes?: Experience['type'][];
+}
+
 // =================== 核心匹配逻辑 ===================
 
 /**
@@ -43,7 +49,8 @@ export function matchAllFields(
   fields: FormField[],
   userData: UserDataContext
 ): MatchResult[] {
-  return fields.map((field) => matchSingleField(field, userData));
+  const contexts = buildFieldDataContexts(fields, userData);
+  return fields.map((field) => matchSingleField(field, userData, contexts.get(field.id)));
 }
 
 /**
@@ -51,19 +58,21 @@ export function matchAllFields(
  */
 export function matchSingleField(
   field: FormField,
-  userData: UserDataContext
+  userData: UserDataContext,
+  dataContext?: FieldDataContext
 ): MatchResult {
+  const effectiveContext = dataContext || inferFieldDataContext(field, userData);
   // 标准化字段标签
   const searchTexts = buildSearchTexts(field);
 
   // 第一级：规则快速匹配
-  const ruleMatch = tryRuleMatch(searchTexts, field, userData);
+  const ruleMatch = tryRuleMatch(searchTexts, field, userData, effectiveContext);
   if (ruleMatch && ruleMatch.confidence >= 0.8) {
     return ruleMatch;
   }
 
   // 第二级：语义相似度匹配（基于关键词模糊匹配）
-  const semanticMatch = trySemanticMatch(searchTexts, field, userData);
+  const semanticMatch = trySemanticMatch(searchTexts, field, userData, effectiveContext);
   if (semanticMatch && semanticMatch.confidence >= 0.6) {
     return semanticMatch;
   }
@@ -116,13 +125,174 @@ const ROOT_CATEGORY: Record<string, FieldMappingRule['category']> = {
   skills: 'skill',
 };
 
+function buildFieldDataContexts(
+  fields: FormField[],
+  userData: UserDataContext
+): Map<string, FieldDataContext> {
+  const contexts = new Map<string, FieldDataContext>();
+  const groupOrderByScope = new Map<string, Map<string, number>>();
+
+  for (const field of fields) {
+    const category = inferFieldCategory(field);
+    if (!category) continue;
+
+    const groupIndex = resolveLocalGroupIndex(field, category, groupOrderByScope);
+    if (category === 'education') {
+      const educationIndex = selectEducationIndex(userData, groupIndex, hasRepeatGroup(field));
+      contexts.set(field.id, { educationIndex });
+      continue;
+    }
+
+    const experienceTypes = inferExperienceTypes(field);
+    const experienceIndex = selectExperienceIndex(userData, groupIndex, experienceTypes, hasRepeatGroup(field));
+    contexts.set(field.id, {
+      experienceIndex,
+      experienceTypes: experienceTypes.length ? experienceTypes : undefined,
+    });
+  }
+
+  return contexts;
+}
+
+function inferFieldDataContext(field: FormField, userData: UserDataContext): FieldDataContext | undefined {
+  const category = inferFieldCategory(field);
+  if (category === 'education') {
+    return {
+      educationIndex: selectEducationIndex(userData, field.groupIndex ?? 0, hasRepeatGroup(field)),
+    };
+  }
+
+  if (category === 'experience') {
+    const experienceTypes = inferExperienceTypes(field);
+    return {
+      experienceIndex: selectExperienceIndex(userData, field.groupIndex ?? 0, experienceTypes, hasRepeatGroup(field)),
+      experienceTypes: experienceTypes.length ? experienceTypes : undefined,
+    };
+  }
+
+  return undefined;
+}
+
+function hasRepeatGroup(field: FormField): boolean {
+  return Boolean(field.groupKey) || typeof field.groupIndex === 'number';
+}
+
+function resolveLocalGroupIndex(
+  field: FormField,
+  category: 'education' | 'experience',
+  groupOrderByScope: Map<string, Map<string, number>>
+): number {
+  if (!field.groupKey) return field.groupIndex ?? 0;
+
+  const typeKey = category === 'experience'
+    ? inferExperienceTypes(field).join('|') || 'all'
+    : 'education';
+  const sectionKey = normalizeLabel(field.sectionContext || '');
+  const scopeKey = `${category}:${typeKey}:${sectionKey}`;
+  let order = groupOrderByScope.get(scopeKey);
+  if (!order) {
+    order = new Map<string, number>();
+    groupOrderByScope.set(scopeKey, order);
+  }
+
+  if (!order.has(field.groupKey)) {
+    order.set(field.groupKey, order.size);
+  }
+
+  return order.get(field.groupKey) || 0;
+}
+
+function inferFieldCategory(field: FormField): 'education' | 'experience' | undefined {
+  const sectionText = normalizeLabel(field.sectionContext || '');
+  const identityText = normalizeLabel([
+    field.label,
+    field.placeholder,
+    field.elementName,
+    field.elementId,
+    field.repeatContext,
+  ].filter(Boolean).join(' '));
+
+  const sectionCategory = inferCategory(sectionText);
+  if (sectionCategory === 'education') return 'education';
+  if (sectionCategory === 'experience') return 'experience';
+
+  if (/学校|院校|学院|专业|学历|学位|入学|毕业|gpa|绩点|排名|school|university|college|major|degree/.test(identityText)) {
+    return 'education';
+  }
+
+  if (/公司|单位|组织|岗位|职位|职务|角色|项目名称|项目角色|工作内容|职责|工作地点|实习地点|company|organization|employer|position|title|role|project|intern|employment|work|research/.test(identityText)) {
+    return 'experience';
+  }
+
+  if (/项目|实习|工作|科研|竞赛|比赛|活动/.test(identityText) && !/证书|语言|社交|渠道/.test(sectionText)) {
+    return 'experience';
+  }
+
+  return undefined;
+}
+
+function inferExperienceTypes(field: FormField): Experience['type'][] {
+  const text = normalizeLabel([
+    field.sectionContext,
+    field.repeatContext,
+    field.label,
+    field.placeholder,
+    field.elementName,
+    field.elementId,
+  ].filter(Boolean).join(' '));
+  const types: Experience['type'][] = [];
+
+  if (/实习|intern/.test(text)) types.push('实习');
+  if (/项目|作品|project/.test(text)) types.push('项目');
+  if (/科研|研究|research/.test(text)) types.push('科研');
+  if (/竞赛|比赛|获奖|奖项|competition|contest|award/.test(text)) types.push('竞赛');
+  if (/活动|校园|社团|志愿|activity|club|volunteer/.test(text)) types.push('活动');
+  if (/工作|任职|职业|employment|work/.test(text)) types.push('工作');
+
+  return Array.from(new Set(types));
+}
+
+function selectEducationIndex(
+  userData: UserDataContext,
+  requestedIndex: number,
+  forceByIndex: boolean
+): number | null | undefined {
+  if (!userData.educations.length) return undefined;
+  if (!forceByIndex) {
+    const primaryIndex = userData.educations.findIndex((education) => education.isPrimary);
+    return primaryIndex >= 0 ? primaryIndex : 0;
+  }
+
+  if (requestedIndex < 0 || requestedIndex >= userData.educations.length) return null;
+  return requestedIndex;
+}
+
+function selectExperienceIndex(
+  userData: UserDataContext,
+  requestedIndex: number,
+  types: Experience['type'][],
+  forceByIndex: boolean
+): number | null | undefined {
+  if (!userData.experiences.length) return undefined;
+
+  const indexedExperiences = userData.experiences.map((experience, index) => ({ experience, index }));
+  const candidates = types.length
+    ? indexedExperiences.filter(({ experience }) => types.includes(experience.type))
+    : indexedExperiences;
+
+  if (!candidates.length) return types.length ? null : undefined;
+  if (forceByIndex && (requestedIndex < 0 || requestedIndex >= candidates.length)) return null;
+  const safeIndex = forceByIndex ? requestedIndex : Math.min(Math.max(0, requestedIndex), candidates.length - 1);
+  return candidates[safeIndex]?.index;
+}
+
 function buildSearchTexts(field: FormField): SearchText[] {
   const candidates: SearchText[] = [
     { text: normalizeLabel(field.label), source: 'label', weight: 1 },
     { text: normalizeLabel(field.placeholder || ''), source: 'placeholder', weight: 0.75 },
     { text: normalizeIdentifier(field.elementName || ''), source: 'name', weight: 0.9 },
     { text: normalizeIdentifier(field.elementId || ''), source: 'id', weight: 0.78 },
-    { text: normalizeLabel(field.sectionContext || ''), source: 'section', weight: 0.28 },
+    { text: normalizeLabel([field.sectionContext, field.repeatContext].filter(Boolean).join(' ')), source: 'section', weight: 0.28 },
   ];
 
   const unique = new Map<string, SearchText>();
@@ -139,7 +309,8 @@ function buildSearchTexts(field: FormField): SearchText[] {
 function tryRuleMatch(
   searchTexts: SearchText[],
   field: FormField,
-  userData: UserDataContext
+  userData: UserDataContext,
+  dataContext?: FieldDataContext
 ): MatchResult | null {
   if (!hasReliableIdentity(searchTexts, field)) return null;
 
@@ -173,7 +344,7 @@ function tryRuleMatch(
   if (!bestMatch) return null;
 
   const { rule, score, source, keyword } = bestMatch;
-  const value = resolveDataPath(rule.dataPath, userData, rule.transform);
+  const value = resolveDataPath(rule.dataPath, userData, rule.transform, dataContext);
   if (!value) return null;
 
   const valueScore = validateMatchedValue(rule, value);
@@ -196,7 +367,7 @@ function tryRuleMatch(
     confidence: finalScore,
     needOptionMatch: field.tagName === 'select',
     recommendedOption,
-    reason: `Rule matched "${keyword}" from ${source}`,
+    reason: buildMatchReason(`Rule matched "${keyword}" from ${source}`, rule, dataContext),
   };
 }
 
@@ -236,7 +407,17 @@ function scoreTextAgainstKeyword(
   rule: FieldMappingRule
 ): number {
   const text = candidate.text;
-  if (!text || GENERIC_LABELS.has(text)) return 0;
+  if (!text) return 0;
+  if (GENERIC_LABELS.has(text)) {
+    if (
+      rule.dataPath === 'experience.description' &&
+      /^(描述|说明|内容)$/.test(text) &&
+      /^(描述|说明|内容|desc|description|details?)$/.test(keyword)
+    ) {
+      return 0.92 * candidate.weight;
+    }
+    return 0;
+  }
 
   let base = 0;
   if (text === keyword) {
@@ -279,7 +460,7 @@ function applyContextCompatibility(
 ): number {
   if (score <= 0) return 0;
 
-  const sectionText = normalizeLabel(field.sectionContext || '');
+  const sectionText = normalizeLabel([field.sectionContext, field.repeatContext].filter(Boolean).join(' '));
   const labelText = normalizeLabel(field.label);
   const mainIdentity = searchTexts
     .filter((item) => item.source !== 'section')
@@ -287,6 +468,10 @@ function applyContextCompatibility(
     .join(' ');
 
   if (/^(url|id|urlid)$/.test(labelText) && rule.dataPath !== 'personalInfo.github' && rule.dataPath !== 'personalInfo.linkedin' && rule.dataPath !== 'personalInfo.portfolio') {
+    return 0;
+  }
+
+  if (/项目名称|项目名|公司名称|企业名称|单位名称|组织名称|学校名称|院校名称/.test(labelText) && rule.dataPath === 'personalInfo.name') {
     return 0;
   }
 
@@ -313,8 +498,20 @@ function applyContextCompatibility(
     if (rule.category !== 'basic') return score * 0.72;
   }
 
-  if (/证书|竞赛|获奖|奖项|语言|社交|渠道/.test(sectionText) && rule.category === 'experience') {
-    return score * 0.35;
+  if (/证书|语言|社交|渠道/.test(sectionText) && rule.category === 'experience') {
+    return 0;
+  }
+
+  if (/获奖|奖项/.test(sectionText) && !/竞赛|比赛|经历/.test(sectionText) && rule.category === 'experience') {
+    return score * 0.25;
+  }
+
+  if (
+    /描述|说明|内容/.test(labelText) &&
+    rule.dataPath === 'experience.description' &&
+    !/实习|工作|项目|科研|研究|竞赛|比赛|活动|经历|职责|岗位|职位|公司|组织|单位|project|intern|work|research|role|position|company/.test(`${sectionText} ${mainIdentity}`)
+  ) {
+    return score * 0.45;
   }
 
   if (/描述|说明|内容/.test(labelText) && rule.dataPath !== 'experience.description') {
@@ -328,7 +525,7 @@ function inferCategory(text: string): FieldMappingRule['category'] | undefined {
   if (!text) return undefined;
   if (/基本|基础|个人信息|联系方式/.test(text)) return 'basic';
   if (/教育|学历|学校|院校/.test(text)) return 'education';
-  if (/实习|工作|项目|科研|经历/.test(text)) return 'experience';
+  if (/实习|工作|项目|科研|竞赛|比赛|经历/.test(text)) return 'experience';
   if (/技能|证书|语言|资质/.test(text)) return 'skill';
   if (/意向|期望|申请信息/.test(text)) return 'intention';
   return undefined;
@@ -359,7 +556,8 @@ function validateMatchedValue(rule: FieldMappingRule, value: string): number {
 function trySemanticMatch(
   searchTexts: SearchText[],
   field: FormField,
-  userData: UserDataContext
+  userData: UserDataContext,
+  dataContext?: FieldDataContext
 ): MatchResult | null {
   if (!hasReliableIdentity(searchTexts, field)) return null;
 
@@ -390,7 +588,7 @@ function trySemanticMatch(
             // 字符重叠率匹配
             const overlap = kwChars.filter((c) => text.includes(c)).length / kwChars.length;
             if (overlap >= 0.68 && text.length <= normalizedKeyword.length * 1.8) {
-              const value = resolveDataPath(rule.dataPath, userData, rule.transform);
+              const value = resolveDataPath(rule.dataPath, userData, rule.transform, dataContext);
               if (value) {
                 const score = applyContextCompatibility(overlap * 0.62 * candidate.weight, rule, field, searchTexts);
                 if (score < 0.42) continue;
@@ -402,7 +600,7 @@ function trySemanticMatch(
                   matchedRule: rule,
                   confidence: score, // 语义匹配置信度较低
                   needOptionMatch: field.tagName === 'select',
-                  reason: `Semantic overlap with "${kw}" from ${candidate.source}`,
+                  reason: buildMatchReason(`Semantic overlap with "${kw}" from ${candidate.source}`, rule, dataContext),
                 };
               }
             }
@@ -424,7 +622,8 @@ function trySemanticMatch(
 function resolveDataPath(
   dataPath: string,
   userData: UserDataContext,
-  transform?: string
+  transform?: string,
+  dataContext?: FieldDataContext
 ): string {
   const parts = dataPath.split('.');
   const root = parts[0];
@@ -438,19 +637,26 @@ function resolveDataPath(
       break;
 
     case 'education': {
-      // 优先使用 isPrimary 的主学历
-      const primaryEdu = userData.educations.find((e) => e.isPrimary) || userData.educations[0];
-      if (primaryEdu) {
-        rawValue = getNestedValue(primaryEdu, field);
+      const educationIndex = dataContext?.educationIndex;
+      if (educationIndex === null) break;
+      const selectedEdu = typeof educationIndex === 'number'
+        ? userData.educations[educationIndex]
+        : userData.educations.find((e) => e.isPrimary) || userData.educations[0];
+      if (selectedEdu) {
+        rawValue = getNestedValue(selectedEdu, field);
       }
       break;
     }
 
     case 'experience': {
-      // 使用最近的经历
-      const latestExp = userData.experiences[0];
-      if (latestExp) {
-        rawValue = getNestedValue(latestExp, field);
+      if (dataContext?.experienceIndex === null) break;
+      const selectedExp = typeof dataContext?.experienceIndex === 'number'
+        ? userData.experiences[dataContext.experienceIndex]
+        : userData.experiences[0];
+      if (selectedExp) {
+        rawValue = field === 'description'
+          ? formatExperienceDescription(selectedExp)
+          : getNestedValue(selectedExp, field);
       }
       break;
     }
@@ -475,6 +681,30 @@ function resolveDataPath(
   }
 
   return stringValue;
+}
+
+function buildMatchReason(
+  baseReason: string,
+  rule: FieldMappingRule,
+  dataContext?: FieldDataContext
+): string {
+  if (rule.dataPath.startsWith('experience.') && typeof dataContext?.experienceIndex === 'number') {
+    return `${baseReason}; using experience #${dataContext.experienceIndex + 1}`;
+  }
+  if (rule.dataPath.startsWith('education.') && typeof dataContext?.educationIndex === 'number') {
+    return `${baseReason}; using education #${dataContext.educationIndex + 1}`;
+  }
+  return baseReason;
+}
+
+function formatExperienceDescription(exp: Experience): string {
+  const parts: string[] = [];
+  if (exp.description?.trim()) parts.push(exp.description.trim());
+  if (exp.bullets?.length) parts.push(exp.bullets.map((item) => item.trim()).filter(Boolean).join('\n'));
+  if (exp.achievements?.length) parts.push(exp.achievements.map((item) => item.trim()).filter(Boolean).join('\n'));
+  if (exp.techStack?.length) parts.push(`技术/工具：${exp.techStack.map((item) => item.trim()).filter(Boolean).join('、')}`);
+
+  return parts.filter(Boolean).join('\n');
 }
 
 /** 获取嵌套对象的值 */

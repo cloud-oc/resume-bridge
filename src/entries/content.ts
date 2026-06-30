@@ -500,6 +500,136 @@ function getSectionContext(element: HTMLElement): string {
   return '';
 }
 
+// =================== 重复表单块上下文 ===================
+
+interface RepeatGroupInfo {
+  groupKey: string;
+  groupIndex: number;
+  fieldIndexInGroup: number;
+  repeatContext?: string;
+}
+
+const REPEAT_GROUP_SELECTOR = [
+  '[class*="array-card"]',
+  '[class*="ArrayCard"]',
+  '[class*="array-item"]',
+  '[class*="ArrayItem"]',
+  '[class*="repeat"]',
+  '[class*="Repeat"]',
+  '[data-formily-array-item]',
+  '[data-array-item]',
+].join(', ');
+
+function getSectionContainer(element: HTMLElement): HTMLElement | null {
+  let current: HTMLElement | null = element.parentElement;
+  for (let i = 0; i < 15 && current; i++) {
+    const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
+    const fieldCount = countFillableControls(current);
+    const looksLikeSection =
+      current.matches('fieldset, section, form') ||
+      /section|module|block|panel|wrapper/.test(className);
+
+    if (looksLikeSection && fieldCount >= 2) return current;
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function hasRepeatFieldShape(container: HTMLElement): boolean {
+  const fieldNames = Array.from(
+    container.querySelectorAll<HTMLElement>('[data-form-field-id], [data-form-field-name], input[name], textarea[name], select[name]')
+  )
+    .map((node) =>
+      cleanShortText(
+        node.getAttribute('data-form-field-id') ||
+          node.getAttribute('data-form-field-name') ||
+          node.getAttribute('name') ||
+          '',
+        40
+      ).toLowerCase()
+    )
+    .filter(Boolean);
+
+  const uniqueNames = new Set(fieldNames);
+  const fillableCount = countFillableControls(container);
+  const signatureHits = fieldNames.filter((name) =>
+    /company|organization|employer|title|role|position|start|end|date|time|desc|description|school|major|degree/.test(name)
+  ).length;
+
+  return fillableCount >= 2 && uniqueNames.size >= 2 && signatureHits >= 2;
+}
+
+function findRepeatGroupElement(element: HTMLElement): HTMLElement | null {
+  const explicitGroup = element.closest<HTMLElement>(REPEAT_GROUP_SELECTOR);
+  const explicitGroupFieldCount = explicitGroup ? countFillableControls(explicitGroup) : 0;
+  const explicitGroupClass = typeof explicitGroup?.className === 'string' ? explicitGroup.className.toLowerCase() : '';
+  if (
+    explicitGroup &&
+    explicitGroupFieldCount >= 2 &&
+    (explicitGroupFieldCount <= 12 || /array-card|array-item|repeat/.test(explicitGroupClass))
+  ) {
+    return explicitGroup;
+  }
+
+  const fieldItem = getFieldItem(element);
+  let current = fieldItem?.parentElement || element.parentElement;
+  const sectionContainer = getSectionContainer(element);
+
+  for (let i = 0; i < 8 && current && current !== sectionContainer; i += 1) {
+    const fillableCount = countFillableControls(current);
+    if (fillableCount >= 2 && fillableCount <= 12 && hasRepeatFieldShape(current)) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+
+  return null;
+}
+
+function getDirectRepeatGroups(container: HTMLElement): HTMLElement[] {
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(REPEAT_GROUP_SELECTOR))
+    .filter((candidate) => countFillableControls(candidate) >= 2);
+
+  const directGroups = candidates.filter((candidate) =>
+    !candidates.some((other) => other !== candidate && candidate.contains(other))
+  );
+
+  return directGroups.length ? directGroups : Array.from(container.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement && hasRepeatFieldShape(child));
+}
+
+function inferRepeatGroupInfo(element: HTMLElement, sectionContext: string): RepeatGroupInfo | undefined {
+  const groupElement = findRepeatGroupElement(element);
+  if (!groupElement) return undefined;
+
+  const sectionContainer = getSectionContainer(groupElement) || groupElement.parentElement;
+  const siblingGroups = sectionContainer
+    ? getDirectRepeatGroups(sectionContainer).filter((group) => group.parentElement === groupElement.parentElement || sectionContainer.contains(group))
+    : [];
+  const fallbackSiblings = Array.from(groupElement.parentElement?.children || [])
+    .filter((child): child is HTMLElement => child instanceof HTMLElement && hasRepeatFieldShape(child));
+  const groups = siblingGroups.length > 1 ? siblingGroups : fallbackSiblings;
+  const groupIndex = Math.max(0, groups.indexOf(groupElement));
+
+  const fieldsInGroup = Array.from(
+    groupElement.querySelectorAll<HTMLElement>(DEFAULT_FORM_SELECTOR)
+  ).filter((candidate) => isVisible(candidate) && !shouldSkipField(candidate));
+  const fieldIndexInGroup = Math.max(0, fieldsInGroup.indexOf(element));
+  const sectionKey = cleanShortText(sectionContext || getSectionContext(groupElement) || 'form', 40);
+  const groupKey = `${sectionKey || 'form'}::${groupIndex >= 0 ? groupIndex : 0}`;
+  const repeatContext = getTextWithoutControls(groupElement)
+    .replace(sectionKey, '')
+    .trim()
+    .slice(0, 120);
+
+  return {
+    groupKey,
+    groupIndex: groupIndex >= 0 ? groupIndex : 0,
+    fieldIndexInGroup,
+    repeatContext: repeatContext || undefined,
+  };
+}
+
 // =================== 核心功能：扫描表单字段 ===================
 
 function scanFormFields(): FormField[] {
@@ -531,6 +661,9 @@ function scanFormFields(): FormField[] {
     const stableFieldId = getStableFieldId(el);
     const stableFieldName = getStableFieldName(el);
 
+    const sectionContext = getSectionContext(el);
+    const repeatGroup = inferRepeatGroupInfo(el, sectionContext);
+
     const field: FormField = {
       id: genId(),
       elementId: el.id || stableFieldId || undefined,
@@ -544,7 +677,11 @@ function scanFormFields(): FormField[] {
       pattern: el.getAttribute('pattern') || undefined,
       xpath: getXPath(el),
       cssSelector: getCssSelector(el),
-      sectionContext: getSectionContext(el),
+      sectionContext,
+      groupKey: repeatGroup?.groupKey,
+      groupIndex: repeatGroup?.groupIndex,
+      fieldIndexInGroup: repeatGroup?.fieldIndexInGroup,
+      repeatContext: repeatGroup?.repeatContext,
       value: (el as HTMLInputElement).value || undefined,
     };
 
