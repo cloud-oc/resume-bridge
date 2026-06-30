@@ -253,7 +253,8 @@ function pingContentScript(tabId: number): Promise<boolean> {
     const timeout = window.setTimeout(() => resolve(false), 500);
     chrome.tabs.sendMessage(tabId, { type: 'RESUME_BRIDGE_PING' }, (response) => {
       window.clearTimeout(timeout);
-      resolve(Boolean(response?.success) && !chrome.runtime.lastError);
+      const lastError = chrome.runtime.lastError;
+      resolve(Boolean(response?.success) && !lastError);
     });
   });
 }

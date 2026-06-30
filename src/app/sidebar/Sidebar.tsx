@@ -19,6 +19,19 @@ const sidebarTabs: { key: TabType; labelKey: string; icon: ProductIconName }[] =
   { key: 'help', labelKey: 'sidebar.tab.help', icon: 'help' },
 ];
 
+function sendTabMessage<TResponse>(tabId: number, message: unknown): Promise<TResponse> {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response: TResponse) => {
+      const lastError = chrome.runtime.lastError;
+      if (lastError) {
+        reject(new Error(lastError.message || 'Could not connect to the current page.'));
+        return;
+      }
+      resolve(response);
+    });
+  });
+}
+
 export default function Sidebar() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('fill');
@@ -60,18 +73,16 @@ export default function Sidebar() {
       }
 
       await ensureContentScriptReady(tabId);
-
-      chrome.tabs.sendMessage(tabId, { type: 'SCAN_FORM_FIELDS' }, (response) => {
-        if (response?.success) {
-          setScannedFields(response.fields);
-          setStatusMessage(t('sidebar.status.scanFound', { count: response.fields.length }));
-        } else {
-          setStatusMessage(t('sidebar.status.scanFailed'));
-        }
-        setIsScanning(false);
-      });
+      const response = await sendTabMessage<{ success?: boolean; fields?: FormField[] }>(tabId, { type: 'SCAN_FORM_FIELDS' });
+      if (response?.success && response.fields) {
+        setScannedFields(response.fields);
+        setStatusMessage(t('sidebar.status.scanFound', { count: response.fields.length }));
+      } else {
+        setStatusMessage(t('sidebar.status.scanFailed'));
+      }
     } catch {
       setStatusMessage(t('sidebar.status.scanError'));
+    } finally {
       setIsScanning(false);
     }
   };
@@ -121,16 +132,14 @@ export default function Sidebar() {
       }
 
       await ensureContentScriptReady(tabId);
-
-      chrome.tabs.sendMessage(tabId, { type: 'CLEAR_ALL_FILLED' }, (response) => {
-        if (response?.success) {
-          setFillResult(null);
-          setScannedFields([]);
-          setStatusMessage(t('sidebar.status.clearDone'));
-        } else {
-          setStatusMessage(t('sidebar.status.clearFailed'));
-        }
-      });
+      const response = await sendTabMessage<{ success?: boolean }>(tabId, { type: 'CLEAR_ALL_FILLED' });
+      if (response?.success) {
+        setFillResult(null);
+        setScannedFields([]);
+        setStatusMessage(t('sidebar.status.clearDone'));
+      } else {
+        setStatusMessage(t('sidebar.status.clearFailed'));
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : t('sidebar.status.clearFailed');
       setStatusMessage(msg);

@@ -32,10 +32,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === 'resume-bridge-fill-field') {
       chrome.tabs.sendMessage(tabId, {
         type: 'FILL_SINGLE_FIELD',
+      }, () => {
+        void chrome.runtime.lastError;
       });
     } else if (info.menuItemId === 'resume-bridge-fill-page') {
       chrome.tabs.sendMessage(tabId, {
         type: 'FILL_ALL_FIELDS',
+      }, () => {
+        void chrome.runtime.lastError;
       });
     }
   }).catch(() => {
@@ -65,6 +69,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.tabId) {
         ensureContentScriptReady(message.tabId)
           .then(() => chrome.tabs.sendMessage(message.tabId, { type: 'SCAN_FORM_FIELDS' }, (response) => {
+            const lastError = chrome.runtime.lastError;
+            if (lastError) {
+              sendResponse({ success: false, message: lastError.message });
+              return;
+            }
             sendResponse(response);
           }))
           .catch((error) => sendResponse({ success: false, message: error.message }));
@@ -83,6 +92,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               data: message.data,
             },
             (response) => {
+              const lastError = chrome.runtime.lastError;
+              if (lastError) {
+                sendResponse({ success: false, message: lastError.message });
+                return;
+              }
               sendResponse(response);
             }
           ))
@@ -96,6 +110,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.tabId) {
         ensureContentScriptReady(message.tabId)
           .then(() => chrome.tabs.sendMessage(message.tabId, { type: 'CLEAR_ALL_FILLED' }, (response) => {
+            const lastError = chrome.runtime.lastError;
+            if (lastError) {
+              sendResponse({ success: false, message: lastError.message });
+              return;
+            }
             sendResponse(response);
           }))
           .catch((error) => sendResponse({ success: false, message: error.message }));
@@ -126,7 +145,8 @@ function pingContentScript(tabId: number): Promise<boolean> {
     const timeout = setTimeout(() => resolve(false), 500);
     chrome.tabs.sendMessage(tabId, { type: 'RESUME_BRIDGE_PING' }, (response) => {
       clearTimeout(timeout);
-      resolve(Boolean(response?.success) && !chrome.runtime.lastError);
+      const lastError = chrome.runtime.lastError;
+      resolve(Boolean(response?.success) && !lastError);
     });
   });
 }
