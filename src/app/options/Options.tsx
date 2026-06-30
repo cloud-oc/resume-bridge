@@ -757,7 +757,7 @@ export default function Options() {
             <h2>{t('options.resume.title')}</h2>
             <p className="options-desc">{t('options.resume.desc')}</p>
             <Suspense fallback={<div className="ca-card options-loading">{t('options.resume.loading')}</div>}>
-              <ResumeUpload onComplete={loadData} />
+              <ResumeUpload onComplete={loadData} onOpenAISettings={() => selectPage('ai')} />
             </Suspense>
           </div>
         )}

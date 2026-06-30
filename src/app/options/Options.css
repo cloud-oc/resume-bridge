@@ -267,6 +267,31 @@
   border-color: var(--ca-primary-border);
 }
 
+.resume-upload-zone-disabled,
+.resume-upload-zone-disabled:hover {
+  color: var(--ca-text-secondary);
+  background: var(--ca-surface-raised);
+  border-color: var(--ca-border);
+}
+
+.resume-model-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.resume-model-gate p {
+  margin: 0;
+}
+
+.resume-model-gate-desc {
+  max-width: 56ch;
+  color: var(--ca-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .resume-upload-icon {
   margin-bottom: 8px;
   width: 34px;
