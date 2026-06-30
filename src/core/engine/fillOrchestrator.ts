@@ -294,8 +294,12 @@ function generateUserDataSummary(userData: UserDataContext): string {
   // 教育经历
   educations.forEach((edu) => {
     parts.push(`\n教育经历：${edu.school} ${edu.major} ${edu.type}`);
+    if (edu.degree) parts.push(`  学位：${edu.degree}`);
+    if (edu.startDate || edu.endDate) parts.push(`  时间：${edu.startDate || '未填写'} - ${edu.endDate || '至今'}`);
     if (edu.gpa) parts.push(`  GPA：${edu.gpa}${edu.gpaTotal ? '/' + edu.gpaTotal : ''}`);
     if (edu.ranking) parts.push(`  排名：${edu.ranking}`);
+    if (edu.mainCourses?.length) parts.push(`  主修课程：${edu.mainCourses.filter(Boolean).join('、')}`);
+    if (edu.awards?.length) parts.push(`  奖项荣誉：${edu.awards.filter(Boolean).join('、')}`);
     if (edu.cet4) parts.push(`  四级：${edu.cet4}`);
     if (edu.cet6) parts.push(`  六级：${edu.cet6}`);
   });
@@ -303,8 +307,12 @@ function generateUserDataSummary(userData: UserDataContext): string {
   // 经历
   experiences.forEach((exp) => {
     parts.push(`\n${exp.type}经历：${exp.organization} - ${exp.role}`);
+    if (exp.startDate || exp.endDate) parts.push(`  时间：${exp.startDate || '未填写'} - ${exp.endDate || '至今'}`);
+    if (exp.location) parts.push(`  地点：${exp.location}`);
     if (exp.description) parts.push(`  描述：${exp.description}`);
     if (exp.bullets.length) parts.push(`  要点：${exp.bullets.filter(Boolean).join('；')}`);
+    if (exp.techStack?.length) parts.push(`  技术/工具：${exp.techStack.filter(Boolean).join('、')}`);
+    if (exp.achievements?.length) parts.push(`  成果：${exp.achievements.filter(Boolean).join('；')}`);
   });
 
   return parts.join('\n');

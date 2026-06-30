@@ -307,6 +307,29 @@
   color: var(--ca-danger);
 }
 
+.resume-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.resume-result-header h4 {
+  margin: 0;
+}
+
+.resume-result-header span,
+.resume-result-empty {
+  color: var(--ca-text-muted);
+  font-size: 12px;
+}
+
+.resume-result-empty {
+  margin: 0;
+  line-height: 1.55;
+}
+
 .resume-steps {
   display: flex;
   flex-wrap: wrap;

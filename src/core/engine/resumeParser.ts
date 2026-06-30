@@ -14,6 +14,9 @@ import {
 
 type ParsedObject = Record<string, unknown>;
 type DatePair = { startDate: string; endDate: string };
+type ParsedResumeData = NonNullable<ResumeParseResult['data']>;
+
+const SOURCE_KEY = '__resumeBridgeSourceKey';
 
 /** 简历解析结果 */
 export interface ResumeParseResult {
@@ -33,38 +36,72 @@ function asString(value: unknown): string {
   return '';
 }
 
-function pickString(source: ParsedObject, keys: string[]): string {
+function normalizeLookupKey(key: string): string {
+  return key.toLowerCase().replace(/[\s_\-./\\()[\]{}:：,，|]+/g, '');
+}
+
+function readValue(source: ParsedObject, keys: string[]): unknown {
+  let fallback: unknown;
   for (const key of keys) {
-    const value = asString(source[key]);
-    if (value) return value;
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const value = source[key];
+      if (hasValue(value)) return value;
+      if (fallback === undefined) fallback = value;
+    }
   }
-  return '';
+
+  const normalizedEntries = Object.entries(source).map(([key, value]) => [normalizeLookupKey(key), value] as const);
+  for (const key of keys) {
+    const normalizedKey = normalizeLookupKey(key);
+    const match = normalizedEntries.find(([candidate]) => candidate === normalizedKey);
+    if (match) {
+      if (hasValue(match[1])) return match[1];
+      if (fallback === undefined) fallback = match[1];
+    }
+  }
+
+  return fallback;
+}
+
+function pickString(source: ParsedObject, keys: string[]): string {
+  return asString(readValue(source, keys));
 }
 
 function pickArray(source: ParsedObject, keys: string[]): unknown[] {
-  for (const key of keys) {
-    const value = source[key];
-    if (Array.isArray(value)) return value;
-    if (value && typeof value === 'object') return [value];
-  }
+  const value = readValue(source, keys);
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return [value];
   return [];
+}
+
+function withSource(value: unknown, sourceKey: string): unknown {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as ParsedObject), [SOURCE_KEY]: sourceKey }
+    : value;
 }
 
 function collectArrays(source: ParsedObject, keys: string[]): unknown[] {
   return keys.flatMap((key) => {
-    const value = source[key];
-    if (Array.isArray(value)) return value;
-    return value && typeof value === 'object' ? [value] : [];
+    const value = readValue(source, [key]);
+    if (Array.isArray(value)) return value.map((item) => withSource(item, key));
+    return value && typeof value === 'object' ? [withSource(value, key)] : [];
   });
 }
 
 function mergeObjectSections(source: ParsedObject, keys: string[]): ParsedObject {
   return keys.reduce<ParsedObject>((merged, key) => {
-    const value = source[key];
+    const value = readValue(source, [key]);
     return value && typeof value === 'object' && !Array.isArray(value)
       ? { ...merged, ...(value as ParsedObject) }
       : merged;
   }, { ...source });
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(asString).filter(Boolean);
+  const raw = asString(value);
+  if (!raw) return [];
+  return raw.split(/\n|,|，|、|；|;/).map((item) => item.trim()).filter(Boolean);
 }
 
 function normalizeDate(value: unknown): string {
@@ -149,7 +186,7 @@ function normalizeBullets(value: unknown): string[] {
 }
 
 function normalizeResumeJson(parsed: ParsedObject): ParsedObject {
-  const nested = parsed.resume || parsed.resumeData || parsed.data || parsed.result || parsed.profile || parsed.candidate || parsed['简历'];
+  const nested = readValue(parsed, ['resume', 'resumeData', 'resume_data', 'data', 'result', 'profile', 'candidate', '简历']);
   return nested && typeof nested === 'object' && !Array.isArray(nested)
     ? { ...parsed, ...(nested as ParsedObject) }
     : parsed;
@@ -175,51 +212,438 @@ function isEmptyStoredValue(value: unknown): boolean {
   return value === undefined || value === null || value === '';
 }
 
+function createEmptyParsedData(): ParsedResumeData {
+  return {
+    personalInfo: {},
+    educations: [],
+    experiences: [],
+    skills: [],
+  };
+}
+
+function hasParsedResumeData(data: ParsedResumeData): boolean {
+  return Boolean(
+    Object.values(data.personalInfo || {}).some(hasValue) ||
+    data.educations?.length ||
+    data.experiences?.length ||
+    data.skills?.length
+  );
+}
+
+function mergePersonalInfo(
+  primary?: Partial<PersonalInfo>,
+  fallback?: Partial<PersonalInfo>
+): Partial<PersonalInfo> {
+  const merged = { ...(fallback || {}) };
+  for (const [key, value] of Object.entries(primary || {})) {
+    if (hasValue(value)) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
+  return merged;
+}
+
+function mergeParsedResumeData(primary: ParsedResumeData, fallback: ParsedResumeData): ParsedResumeData {
+  return {
+    personalInfo: mergePersonalInfo(primary.personalInfo, fallback.personalInfo),
+    educations: primary.educations?.length ? primary.educations : fallback.educations,
+    experiences: primary.experiences?.length ? primary.experiences : fallback.experiences,
+    skills: primary.skills?.length ? primary.skills : fallback.skills,
+  };
+}
+
+function inferExperienceType(value: unknown): Experience['type'] {
+  return normalizeExperienceType(value || '');
+}
+
+function inferExperienceTypeFromSource(exp: ParsedObject): Experience['type'] {
+  return inferExperienceType(exp.type ?? exp.category ?? exp['类型'] ?? exp['经历类型'] ?? exp[SOURCE_KEY]);
+}
+
+export function normalizeParsedResumeData(
+  parsedResume: Record<string, unknown>,
+  sourceText = ''
+): ParsedResumeData {
+  const parsed = normalizeResumeJson(parsedResume);
+  const data = createEmptyParsedData();
+
+  // 映射个人信息
+  const personalInfo = mergeObjectSections(parsed, [
+    'personalInfo',
+    'personal_info',
+    'basicInfo',
+    'basic_info',
+    'basicInformation',
+    'candidateInfo',
+    'applicant',
+    'profile',
+    'contact',
+    'contactInfo',
+    'contact_info',
+    '个人信息',
+    '基础信息',
+    '基本信息',
+    '联系方式',
+  ]);
+
+  if (
+    pickString(personalInfo, ['name', 'fullName', 'full_name', 'candidateName', '姓名', '姓名/名称']) ||
+    pickString(personalInfo, ['phone', 'mobile', 'telephone', 'tel', 'phoneNumber', 'mobilePhone', '手机号', '手机', '电话', '联系电话']) ||
+    pickString(personalInfo, ['email', 'mail', 'emailAddress', '邮箱'])
+  ) {
+    data.personalInfo = {
+      name: pickString(personalInfo, ['name', 'fullName', 'full_name', 'candidateName', '姓名', '姓名/名称']),
+      nameEn: pickString(personalInfo, ['nameEn', 'englishName', 'english_name', '英文名', '英文姓名']),
+      gender: normalizeGender(readValue(personalInfo, ['gender', 'sex', '性别'])),
+      phone: pickString(personalInfo, ['phone', 'mobile', 'telephone', 'tel', 'phoneNumber', 'mobilePhone', '手机号', '手机', '电话', '联系电话']),
+      email: pickString(personalInfo, ['email', 'mail', 'emailAddress', '邮箱']),
+      birthDate: normalizeDate(readValue(personalInfo, ['birthDate', 'birthday', 'dateOfBirth', 'date_of_birth', '出生日期', '生日'])),
+      nativePlace: pickString(personalInfo, ['nativePlace', 'hometown', 'birthplace', '籍贯', '家乡']),
+      politicalStatus: pickString(personalInfo, ['politicalStatus', 'political_status', '政治面貌']),
+      currentCity: pickString(personalInfo, ['currentCity', 'current_city', 'city', 'location', 'address', '现居城市', '所在地', '居住地']),
+      ethnicity: pickString(personalInfo, ['ethnicity', '民族']),
+      wechat: pickString(personalInfo, ['wechat', 'weChat', 'weixin', '微信']),
+      linkedin: pickString(personalInfo, ['linkedin', 'linkedIn', 'LinkedIn', '领英']),
+      github: pickString(personalInfo, ['github', 'GitHub']),
+      portfolio: pickString(personalInfo, ['portfolio', 'website', 'personalWebsite', '作品集', '个人网站']),
+      expectedSalary: pickString(personalInfo, ['expectedSalary', 'salaryExpectation', '期望薪资', '薪资期望']),
+      availableDate: normalizeDate(readValue(personalInfo, ['availableDate', 'availability', '可到岗日期', '到岗时间'])),
+      targetCities: normalizeStringArray(readValue(personalInfo, ['targetCities', 'targetCity', 'preferredCities', '意向城市', '期望城市'])),
+      targetPositions: normalizeStringArray(readValue(personalInfo, ['targetPositions', 'targetPosition', 'desiredPosition', 'preferredPosition', '意向岗位', '期望岗位'])),
+    };
+  }
+
+  // 映射教育经历
+  const educations = pickArray(parsed, [
+    'educations',
+    'education',
+    'educationList',
+    'educationExperience',
+    'educationExperiences',
+    'education_experience',
+    'education_experiences',
+    'academicBackground',
+    'academic_background',
+    'academicExperience',
+    'schools',
+    'degrees',
+    '教育经历',
+    '教育背景',
+    '学习经历',
+  ]);
+  if (educations.length) {
+    data.educations = educations
+      .filter((edu): edu is ParsedObject => Boolean(edu) && typeof edu === 'object' && !Array.isArray(edu))
+      .map((edu) => {
+        const dates = pickDatePair(
+          edu,
+          ['startDate', 'start_date', 'start', 'from', 'beginDate', 'begin_date', '入学时间', '开始时间', '开始日期'],
+          ['endDate', 'end_date', 'end', 'to', 'finishDate', 'finish_date', 'graduationDate', 'graduation_date', '毕业时间', '结束时间', '结束日期'],
+          ['dateRange', 'date_range', 'period', 'duration', 'time', '时间', '起止时间', '在校时间']
+        );
+        return {
+          type: normalizeEducationType(readValue(edu, ['type', 'educationType', 'education_type', 'level', '学历', '学历层次']) ?? readValue(edu, ['degree', '学位'])),
+          school: pickString(edu, ['school', 'university', 'institution', 'schoolName', 'universityName', '学校', '学校名称', '院校', '大学']),
+          schoolEn: pickString(edu, ['schoolEn', 'schoolEnglishName', '英文学校']),
+          college: pickString(edu, ['college', 'department', 'faculty', 'schoolDepartment', '学院', '院系']),
+          major: pickString(edu, ['major', 'field', 'fieldOfStudy', 'field_of_study', 'majorName', '专业', '研究方向']),
+          degree: pickString(edu, ['degree', 'degreeName', '学位']),
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          gpa: pickString(edu, ['gpa', 'GPA', '绩点']),
+          gpaTotal: pickString(edu, ['gpaTotal', 'gpaScale', 'gpa_scale', '满绩点']),
+          ranking: pickString(edu, ['ranking', 'rank', '排名']),
+          trainingMode: pickString(edu, ['trainingMode', 'studyMode', '培养方式', '学习方式']),
+          mainCourses: normalizeStringArray(readValue(edu, ['mainCourses', 'courses', '主修课程', '主要课程'])),
+          awards: normalizeStringArray(readValue(edu, ['awards', 'honors', '奖项', '荣誉'])),
+        };
+      })
+      .filter((edu) => edu.school || edu.major);
+  }
+
+  // 映射工作/项目经历
+  const experiences = collectArrays(parsed, [
+    'experiences',
+    'experience',
+    'experienceList',
+    'experience_list',
+    'professionalExperience',
+    'professional_experience',
+    'employmentHistory',
+    'employment_history',
+    'workExperiences',
+    'work_experiences',
+    'projectExperiences',
+    'project_experiences',
+    'internshipExperiences',
+    'internship_experiences',
+    'researchExperiences',
+    'research_experiences',
+    'activityExperiences',
+    'activity_experiences',
+    'workExperience',
+    'work_experience',
+    'projectExperience',
+    'project_experience',
+    'internshipExperience',
+    'internship_experience',
+    'researchExperience',
+    'research_experience',
+    'activities',
+    'projects',
+    'project',
+    'internships',
+    'work',
+    'works',
+    'jobs',
+    '工作经历',
+    '实习经历',
+    '项目经历',
+    '科研经历',
+    '校园经历',
+    '活动经历',
+    '经历',
+  ]);
+  if (experiences.length) {
+    data.experiences = experiences
+      .filter((exp): exp is ParsedObject => Boolean(exp) && typeof exp === 'object' && !Array.isArray(exp))
+      .map((exp) => {
+        const dates = pickDatePair(
+          exp,
+          ['startDate', 'start_date', 'start', 'from', 'beginDate', 'begin_date', '开始时间', '开始日期'],
+          ['endDate', 'end_date', 'end', 'to', 'finishDate', 'finish_date', '结束时间', '结束日期'],
+          ['dateRange', 'date_range', 'period', 'duration', 'time', '时间', '起止时间', '任职时间', '项目时间']
+        );
+        const organization = pickString(exp, ['organization', 'company', 'employer', 'institution', 'team', 'client', 'projectName', 'project_name', 'name', '公司', '组织', '公司/组织', '单位', '项目方', '团队', '项目名称']);
+        const role = pickString(exp, ['role', 'position', 'title', 'jobTitle', 'job_title', '岗位', '角色', '职位', '职务', '项目角色']);
+        return {
+          type: inferExperienceTypeFromSource(exp),
+          organization,
+          role,
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          location: pickString(exp, ['location', 'city', '地点', '城市']),
+          description: pickString(exp, ['description', 'summary', 'overview', 'projectDescription', 'project_description', '描述', '核心描述', '项目描述', '简介']),
+          bullets: normalizeBullets(readValue(exp, ['bullets', 'bulletPoints', 'highlights', 'achievements', 'responsibilities', 'details', 'content', '要点', '职责', '成果', '工作内容', '项目内容'])),
+          techStack: normalizeStringArray(readValue(exp, ['techStack', 'technologies', 'tools', '技术栈', '使用技术', '工具'])),
+          achievements: normalizeStringArray(readValue(exp, ['achievements', 'results', '成果', '项目成果', '工作成果'])),
+        };
+      })
+      .filter((exp) => exp.organization || exp.role || exp.description || exp.bullets.length);
+  }
+
+  data.skills = normalizeStringArray(readValue(parsed, ['skills', 'skill', 'technicalSkills', 'technical_skills', '技能', '专业技能']));
+
+  return mergeParsedResumeData(data, extractResumeDataFromText(sourceText));
+}
+
+function cleanResumeText(text: string): string {
+  return text
+    .replace(/\r/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function nonEmptyLines(text: string): string[] {
+  return cleanResumeText(text)
+    .split('\n')
+    .map((line) => line.replace(/^[-•●▪*·\s]+/, '').trim())
+    .filter(Boolean);
+}
+
+function pickRegex(text: string, patterns: RegExp[]): string {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const value = match?.[1]?.trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function stripLabel(value: string): string {
+  return value.replace(/^(姓名|中文名|电话|手机|手机号|邮箱|电子邮箱|学校|院校|专业|公司|单位|岗位|职位|项目名称)\s*[:：]\s*/, '').trim();
+}
+
+function extractLikelyName(text: string, lines: string[]): string {
+  const labeled = pickRegex(text, [
+    /(?:^|\n)\s*(?:姓名|中文名|Name)\s*[:：]\s*([^\n|｜,，]{2,40})/i,
+  ]);
+  if (labeled) return stripLabel(labeled);
+
+  const firstUsefulLine = lines.find((line) => {
+    if (/@|电话|手机|邮箱|教育|工作|项目|经历|求职|应聘|resume|cv/i.test(line)) return false;
+    return /^[\u4e00-\u9fa5]{2,5}(?:\s|$)/.test(line) || /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(line);
+  });
+
+  return firstUsefulLine ? stripLabel(firstUsefulLine.split(/[|｜,，]/)[0]) : '';
+}
+
+function getSectionLines(lines: string[], startKeywords: string[], stopKeywords: string[]): string[] {
+  const startIndex = lines.findIndex((line) => startKeywords.some((keyword) => line.includes(keyword)));
+  if (startIndex < 0) return [];
+
+  const sectionLines: string[] = [];
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (stopKeywords.some((keyword) => line.includes(keyword)) && sectionLines.length > 0) break;
+    sectionLines.push(line);
+  }
+
+  return sectionLines.filter(Boolean);
+}
+
+function firstLineMatching(lines: string[], patterns: RegExp[]): string {
+  return lines.find((line) => patterns.some((pattern) => pattern.test(line))) || '';
+}
+
+function extractEducationFromText(lines: string[]): Partial<Education>[] {
+  const section = getSectionLines(
+    lines,
+    ['教育经历', '教育背景', '学习经历', 'Education'],
+    ['工作经历', '实习经历', '项目经历', '科研经历', '校园经历', '工作经验', '专业技能', '技能', '证书', '获奖', 'Experience', 'Project', 'Skills']
+  );
+  const source = section.length ? section : lines;
+  const schoolLine = firstLineMatching(source, [/大学|学院|学校|University|College|Institute/i]);
+  const majorLine = firstLineMatching(source, [/专业|Major|硕士|本科|博士|Bachelor|Master|PhD/i]);
+  const dateLine = firstLineMatching(source, [/\d{4}[./年-]\s*\d{1,2}|\d{4}\s*[-~–—至]\s*\d{4}|至今|Present/i]);
+
+  const school = stripLabel(pickRegex(schoolLine, [
+    /(?:学校|院校|毕业院校)\s*[:：]\s*([^|｜,，]+)/,
+    /([\u4e00-\u9fa5A-Za-z\s]*(?:大学|学院|学校|University|College|Institute)[\u4e00-\u9fa5A-Za-z\s]*)/,
+  ]) || schoolLine.split(/[|｜,，]/)[0] || '');
+
+  const major = stripLabel(pickRegex(`${majorLine}\n${schoolLine}`, [
+    /(?:专业|主修|Major)\s*[:：]\s*([^|｜,，\n]+)/i,
+    /([\u4e00-\u9fa5A-Za-z]+(?:专业|工程|科学|管理|经济|金融|会计|数学|计算机|软件|数据)[\u4e00-\u9fa5A-Za-z]*)/,
+  ]));
+
+  const dates = splitDateRange(dateLine);
+  const type = normalizeEducationType(`${majorLine} ${schoolLine}`);
+
+  return school || major ? [{
+    type,
+    school,
+    major,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+  }] : [];
+}
+
+function extractExperiencesFromText(lines: string[]): Partial<Experience>[] {
+  const groups = [
+    { type: '工作' as const, starts: ['工作经历', '工作经验', '职业经历', 'Employment', 'Work Experience'] },
+    { type: '实习' as const, starts: ['实习经历', 'Internship'] },
+    { type: '项目' as const, starts: ['项目经历', '项目经验', 'Project Experience', 'Projects'] },
+  ];
+
+  const stopKeywords = ['教育经历', '教育背景', '专业技能', '技能', '证书', '获奖', '自我评价', '个人总结', 'Education', 'Skills'];
+  const experiences: Partial<Experience>[] = [];
+
+  for (const group of groups) {
+    const section = getSectionLines(lines, group.starts, stopKeywords);
+    if (!section.length) continue;
+
+    const titleLine = firstLineMatching(section, [/公司|有限公司|科技|集团|项目|系统|平台|Company|Project|Inc|Ltd/i]) || section[0];
+    const roleLine = firstLineMatching(section, [/岗位|职位|角色|工程师|经理|实习生|助理|负责人|Developer|Engineer|Manager|Intern|Designer|Analyst/i]) || titleLine;
+    const dateLine = firstLineMatching(section, [/\d{4}[./年-]\s*\d{1,2}|\d{4}\s*[-~–—至]\s*\d{4}|至今|Present/i]);
+    const dates = splitDateRange(dateLine);
+
+    const organization = stripLabel(pickRegex(titleLine, [
+      /(?:公司|单位|组织|项目名称)\s*[:：]\s*([^|｜,，]+)/,
+      /([\u4e00-\u9fa5A-Za-z0-9\s]*(?:公司|科技|集团|银行|大学|学院|实验室|项目|系统|平台|Company|Inc|Ltd)[\u4e00-\u9fa5A-Za-z0-9\s]*)/,
+    ]) || titleLine.split(/[|｜,，]/)[0] || '');
+
+    const role = stripLabel(pickRegex(roleLine, [
+      /(?:岗位|职位|角色|担任)\s*[:：]\s*([^|｜,，]+)/,
+      /(工程师|产品经理|项目经理|实习生|助理|负责人|开发|运营|设计师|研究员|Developer|Engineer|Manager|Intern|Designer|Analyst)/i,
+    ]));
+
+    const bullets = section
+      .filter((line) => line !== titleLine && line !== roleLine && line !== dateLine)
+      .map((line) => line.replace(/^[-•●▪*·\d.、\s]+/, '').trim())
+      .filter((line) => line.length >= 6)
+      .slice(0, 6);
+
+    if (organization || role || bullets.length) {
+      experiences.push({
+        type: group.type,
+        organization,
+        role,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+        description: bullets[0] || '',
+        bullets,
+      });
+    }
+  }
+
+  return experiences;
+}
+
+function extractResumeDataFromText(text: string): ParsedResumeData {
+  const cleaned = cleanResumeText(text);
+  const lines = nonEmptyLines(cleaned);
+  if (!cleaned || lines.length === 0) return createEmptyParsedData();
+
+  const phone = pickRegex(cleaned, [
+    /(?:手机|手机号|电话|联系电话|Mobile|Phone)\s*[:：]?\s*((?:\+?\d[\d\s-]{6,}\d))/i,
+    /(?<!\d)(1[3-9]\d{9})(?!\d)/,
+  ]);
+  const email = pickRegex(cleaned, [
+    /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
+  ]);
+  const name = extractLikelyName(cleaned, lines);
+
+  const data = createEmptyParsedData();
+  if (name || phone || email) {
+    data.personalInfo = {
+      name,
+      phone: phone.replace(/\s+/g, ''),
+      email,
+    };
+  }
+  data.educations = extractEducationFromText(lines);
+  data.experiences = extractExperiencesFromText(lines);
+
+  return data;
+}
+
 /**
  * 从 PDF 文件中提取文本内容
  * 使用浏览器端的 FileReader 读取 PDF 文本
  */
 export async function extractTextFromPDF(file: File): Promise<string> {
-  // 方案 1：使用 pdf.js CDN 来解析（如果可用）
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    // @ts-expect-error pdfjsLib 由 CDN 提供
-    if (typeof window.pdfjsLib !== 'undefined') {
-      // @ts-expect-error pdfjsLib 由 CDN 提供
-      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const textParts: string[] = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item: { str: string }) => item.str)
-          .join(' ');
-        textParts.push(pageText);
-      }
-      return textParts.join('\n');
-    }
-  } catch (e) {
-    console.warn('[Resume Bridge] pdf.js 解析失败，使用备用方案:', e);
-  }
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/legacy/build/pdf.worker.mjs',
+      import.meta.url
+    ).toString();
 
-  // 方案 2：直接读取文本（对某些 PDF 有效）
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = reader.result as string;
-      // 尝试提取可读文本
-      const cleanText = text.replace(/[^\x20-\x7E\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef\n\r\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (cleanText.length > 50) {
-        resolve(cleanText);
-      } else {
-        reject(new Error('PDF 文本提取失败，请尝试使用纯文本简历'));
-      }
-    };
-    reader.onerror = () => reject(new Error('文件读取失败'));
-    reader.readAsText(file);
-  });
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    const textParts: string[] = [];
+
+    for (let i = 1; i <= pdf.numPages; i += 1) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item) => ('str' in item ? item.str : ''))
+        .filter(Boolean)
+        .join(' ');
+      textParts.push(pageText);
+    }
+
+    const text = textParts.join('\n').replace(/\s+/g, ' ').trim();
+    if (text.length < 30) {
+      throw new Error('PDF 未提取到足够文本，可能是扫描版图片简历');
+    }
+    return text;
+  } catch (e) {
+    console.warn('[Resume Bridge] PDF 解析失败:', e);
+    throw new Error('PDF 文本提取失败。请使用可复制文字的 PDF，或改用 Word/TXT 简历。');
+  }
 }
 
 /**
@@ -272,147 +696,21 @@ export async function parseResumeText(
   aiConfig: AIModelConfig
 ): Promise<ResumeParseResult> {
   try {
-    const parsed = normalizeResumeJson(await llmParseResume(aiConfig, text));
+    const data = normalizeParsedResumeData(await llmParseResume(aiConfig, text), text);
 
-    const result: ResumeParseResult = {
-      success: true,
-      message: '简历解析成功',
-      data: {
-        personalInfo: {},
-        educations: [],
-        experiences: [],
-        skills: [],
-      },
-    };
-
-    // 映射个人信息
-    const personalInfo = mergeObjectSections(parsed, [
-      'personalInfo',
-      'basicInfo',
-      'contact',
-      'contactInfo',
-      '个人信息',
-      '基础信息',
-      '联系方式',
-    ]);
-
-    if (
-      pickString(personalInfo, ['name', 'fullName', '姓名', '姓名/名称']) ||
-      pickString(personalInfo, ['phone', 'mobile', 'telephone', 'tel', '手机号', '手机', '电话', '联系电话']) ||
-      pickString(personalInfo, ['email', 'mail', '邮箱'])
-    ) {
-      result.data!.personalInfo = {
-        name: pickString(personalInfo, ['name', 'fullName', '姓名', '姓名/名称']),
-        gender: normalizeGender(personalInfo.gender ?? personalInfo['性别']),
-        phone: pickString(personalInfo, ['phone', 'mobile', 'telephone', 'tel', '手机号', '手机', '电话', '联系电话']),
-        email: pickString(personalInfo, ['email', 'mail', '邮箱']),
-        birthDate: normalizeDate(personalInfo.birthDate ?? personalInfo.birthday ?? personalInfo.dateOfBirth ?? personalInfo['出生日期'] ?? personalInfo['生日']),
-        nativePlace: pickString(personalInfo, ['nativePlace', 'hometown', '籍贯', '家乡']),
-        politicalStatus: pickString(personalInfo, ['politicalStatus', '政治面貌']),
-        currentCity: pickString(personalInfo, ['currentCity', 'city', 'location', '现居城市', '所在地', '居住地']),
-        ethnicity: pickString(personalInfo, ['ethnicity', '民族']),
-        wechat: pickString(personalInfo, ['wechat', 'weChat', '微信']),
-        linkedin: pickString(personalInfo, ['linkedin', 'LinkedIn']),
-        github: pickString(personalInfo, ['github', 'GitHub']),
-        portfolio: pickString(personalInfo, ['portfolio', 'website', '作品集', '个人网站']),
+    if (!hasParsedResumeData(data)) {
+      return {
+        success: false,
+        message: '未能从简历中识别出可保存的基础信息、教育经历或工作/项目经历。请检查 AI 模型返回内容，或尝试上传文本更清晰的 Word/TXT 简历。',
+        data,
       };
     }
 
-    // 映射教育经历
-    const educations = pickArray(parsed, [
-      'educations',
-      'education',
-      'educationList',
-      'educationExperience',
-      'educationExperiences',
-      'academicBackground',
-      'schools',
-      '教育经历',
-      '教育背景',
-      '学习经历',
-    ]);
-    if (educations.length) {
-      result.data!.educations = educations
-        .filter((edu): edu is ParsedObject => Boolean(edu) && typeof edu === 'object' && !Array.isArray(edu))
-        .map((edu) => {
-          const dates = pickDatePair(
-            edu,
-            ['startDate', 'start', 'from', 'beginDate', '入学时间', '开始时间', '开始日期'],
-            ['endDate', 'end', 'to', 'finishDate', 'graduationDate', '毕业时间', '结束时间', '结束日期'],
-            ['dateRange', 'period', 'duration', 'time', '时间', '起止时间', '在校时间']
-          );
-          return {
-            type: normalizeEducationType(edu.type ?? edu.educationType ?? edu.level ?? edu.degree ?? edu['学历'] ?? edu['学位']),
-            school: pickString(edu, ['school', 'university', 'institution', '学校', '学校名称', '院校', '大学']),
-            college: pickString(edu, ['college', 'department', 'faculty', '学院', '院系']),
-            major: pickString(edu, ['major', 'field', 'fieldOfStudy', '专业', '研究方向']),
-            degree: pickString(edu, ['degree', '学位']),
-            startDate: dates.startDate,
-            endDate: dates.endDate,
-            gpa: pickString(edu, ['gpa', 'GPA', '绩点']),
-            gpaTotal: pickString(edu, ['gpaTotal', 'gpaScale', '满绩点']),
-            ranking: pickString(edu, ['ranking', 'rank', '排名']),
-          };
-        })
-        .filter((edu) => edu.school || edu.major);
-    }
-
-    // 映射工作/项目经历
-    const experiences = collectArrays(parsed, [
-      'experiences',
-      'experience',
-      'experienceList',
-      'workExperiences',
-      'projectExperiences',
-      'internshipExperiences',
-      'researchExperiences',
-      'activityExperiences',
-      'workExperience',
-      'projectExperience',
-      'internshipExperience',
-      'researchExperience',
-      'activities',
-      'projects',
-      'internships',
-      'works',
-      '工作经历',
-      '实习经历',
-      '项目经历',
-      '科研经历',
-      '校园经历',
-      '活动经历',
-      '经历',
-    ]);
-    if (experiences.length) {
-      result.data!.experiences = experiences
-        .filter((exp): exp is ParsedObject => Boolean(exp) && typeof exp === 'object' && !Array.isArray(exp))
-        .map((exp) => {
-          const dates = pickDatePair(
-            exp,
-            ['startDate', 'start', 'from', 'beginDate', '开始时间', '开始日期'],
-            ['endDate', 'end', 'to', 'finishDate', '结束时间', '结束日期'],
-            ['dateRange', 'period', 'duration', 'time', '时间', '起止时间', '任职时间', '项目时间']
-          );
-          return {
-            type: normalizeExperienceType(exp.type ?? exp.category ?? exp['类型'] ?? exp['经历类型']),
-            organization: pickString(exp, ['organization', 'company', 'employer', 'institution', 'team', 'client', '公司', '组织', '公司/组织', '单位', '项目方', '团队']),
-            role: pickString(exp, ['role', 'position', 'title', 'jobTitle', '岗位', '角色', '职位', '职务', '项目角色']),
-            startDate: dates.startDate,
-            endDate: dates.endDate,
-            location: pickString(exp, ['location', 'city', '地点', '城市']),
-            description: pickString(exp, ['description', 'summary', 'overview', 'projectDescription', '描述', '核心描述', '项目描述', '简介']),
-            bullets: normalizeBullets(exp.bullets ?? exp.highlights ?? exp.achievements ?? exp.responsibilities ?? exp.details ?? exp['要点'] ?? exp['职责'] ?? exp['成果'] ?? exp['工作内容'] ?? exp['项目内容']),
-          };
-        })
-        .filter((exp) => exp.organization || exp.role || exp.description || exp.bullets.length);
-    }
-
-    // 技能
-    if (Array.isArray(parsed.skills)) {
-      result.data!.skills = parsed.skills as string[];
-    }
-
-    return result;
+    return {
+      success: true,
+      message: '简历解析成功',
+      data,
+    };
   } catch (error) {
     return {
       success: false,
@@ -486,13 +784,23 @@ export async function saveResumeData(
       const normalized = {
         type: (edu.type || '本科') as Education['type'],
         school: edu.school || '',
+        schoolEn: edu.schoolEn || '',
         college: edu.college || '',
         major: edu.major || '',
+        majorEn: edu.majorEn || '',
+        degree: edu.degree || '',
         startDate: normalizeDate(edu.startDate),
         endDate: normalizeDate(edu.endDate),
         gpa: edu.gpa || '',
         gpaTotal: edu.gpaTotal || '',
         ranking: edu.ranking || '',
+        trainingMode: edu.trainingMode || '',
+        cet4: edu.cet4 || '',
+        cet6: edu.cet6 || '',
+        ielts: edu.ielts || '',
+        toefl: edu.toefl || '',
+        mainCourses: edu.mainCourses?.filter(Boolean) || [],
+        awards: edu.awards?.filter(Boolean) || [],
       };
       if (!normalized.school && !normalized.major) continue;
 
@@ -505,8 +813,6 @@ export async function saveResumeData(
         ...normalized,
         isPrimary: existing.length === 0 && appended === 0,
         order: existing.length + appended,
-        mainCourses: [],
-        awards: [],
         tags: [],
         createdAt: now,
         updatedAt: now,
@@ -541,6 +847,8 @@ export async function saveResumeData(
         location: exp.location || '',
         description: exp.description || '',
         bullets: exp.bullets?.filter(Boolean) || [],
+        techStack: exp.techStack?.filter(Boolean) || [],
+        achievements: exp.achievements?.filter(Boolean) || [],
       };
       if (!normalized.organization && !normalized.role && !normalized.description && normalized.bullets.length === 0) continue;
 
@@ -551,8 +859,6 @@ export async function saveResumeData(
       await experienceDB.save({
         id: generateId(),
         ...normalized,
-        techStack: [],
-        achievements: [],
         versions: [],
         abilityTags: [],
         industryTags: [],

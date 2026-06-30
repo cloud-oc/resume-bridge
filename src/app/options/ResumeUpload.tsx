@@ -132,6 +132,13 @@ export default function ResumeUpload({ onComplete, onOpenAISettings }: ResumeUpl
 
   const isBusy = status === 'extracting' || status === 'parsing' || status === 'saving';
   const canUpload = Boolean(activeAIConfig) && !isCheckingModel && !isBusy;
+  const previewItemCount = parseResult?.data
+    ? [
+        parseResult.data.personalInfo && Object.values(parseResult.data.personalInfo).some(Boolean) ? 1 : 0,
+        parseResult.data.educations?.length || 0,
+        parseResult.data.experiences?.length || 0,
+      ].reduce((total, count) => total + count, 0)
+    : 0;
 
   const getStepBadge = (step: string, current: boolean, done: boolean) => (
     <div className={`resume-step ${done ? 'done' : current ? 'active' : ''}`}>
@@ -236,7 +243,10 @@ export default function ResumeUpload({ onComplete, onOpenAISettings }: ResumeUpl
       {/* 解析结果预览 */}
       {parseResult?.success && parseResult.data && (
         <div className="resume-result">
-          <h4 style={{ marginBottom: '8px' }}>{t('resume.preview')}</h4>
+          <div className="resume-result-header">
+            <h4>{t('resume.preview')}</h4>
+            <span>{t('resume.previewCount', { count: previewItemCount })}</span>
+          </div>
           {parseResult.data.personalInfo?.name && (
             <div className="resume-result-item">
               <span className="resume-result-label">{t('resume.name')}</span>
@@ -264,9 +274,12 @@ export default function ResumeUpload({ onComplete, onOpenAISettings }: ResumeUpl
           {parseResult.data.experiences?.map((exp, i) => (
             <div key={i} className="resume-result-item">
               <span className="resume-result-label">{t('resume.experience', { index: i + 1 })}</span>
-              <span>{exp.organization} · {exp.role}</span>
+              <span>{[exp.organization, exp.role, exp.type].filter(Boolean).join(' · ')}</span>
             </div>
           ))}
+          {previewItemCount === 0 && (
+            <p className="resume-result-empty">{t('resume.previewEmpty')}</p>
+          )}
         </div>
       )}
 
