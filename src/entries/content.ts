@@ -138,10 +138,6 @@ function getCssSelector(element: Element): string {
 }
 
 function isVisible(element: HTMLElement): boolean {
-  if (!element.offsetParent && element.tagName !== 'BODY') {
-    const style = window.getComputedStyle(element);
-    if (style.position !== 'fixed' && style.position !== 'sticky') return false;
-  }
   const style = window.getComputedStyle(element);
   return (
     style.display !== 'none' &&
@@ -156,6 +152,8 @@ function shouldSkipField(element: HTMLElement): boolean {
   const inputType = (element as HTMLInputElement).type?.toLowerCase();
   if (['hidden', 'submit', 'button', 'reset', 'image', 'file'].includes(inputType)) return true;
   if ((element as HTMLInputElement).readOnly || (element as HTMLInputElement).disabled) return true;
+  if (element.closest('remove-web-limits-iqxin')) return true;
+  if (isCustomSelectSearchInput(element)) return true;
 
   const joinedAttrs = [
     element.getAttribute('name'),
@@ -172,6 +170,21 @@ function shouldSkipField(element: HTMLElement): boolean {
   return /search|captcha|verify|verification|otp|sms|code|password|comment|filter|keyword|query|newsletter|subscribe/.test(joinedAttrs);
 }
 
+function isCustomSelectSearchInput(element: HTMLElement): boolean {
+  const inputType = (element as HTMLInputElement).type?.toLowerCase();
+  const role = element.getAttribute('role')?.toLowerCase();
+  const className = typeof element.className === 'string' ? element.className.toLowerCase() : '';
+
+  if (className.includes('__select__selector__search__input')) return true;
+  if (className.includes('select') && className.includes('search')) return true;
+
+  return (
+    inputType === 'search' &&
+    role === 'combobox' &&
+    Boolean(element.closest('.ud__select, .ant-select, .el-select, [class*="select"], [class*="Select"]'))
+  );
+}
+
 function getSelectOptions(element: HTMLSelectElement): string[] {
   return Array.from(element.options)
     .map((opt) => opt.text.trim())
@@ -180,8 +193,148 @@ function getSelectOptions(element: HTMLSelectElement): string[] {
 
 // =================== 增强版 Label 提取 ===================
 
+function cleanShortText(text?: string | null, maxLength = 80): string {
+  if (!text) return '';
+  return cleanLabel(text).replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function getNearestAttribute(element: HTMLElement, attr: string, maxDepth = 12): string {
+  let current: HTMLElement | null = element;
+  for (let i = 0; i <= maxDepth && current; i++) {
+    const value = current.getAttribute(attr);
+    if (value?.trim()) return value.trim();
+    current = current.parentElement;
+  }
+  return '';
+}
+
+function getStableFieldLabel(element: HTMLElement): string {
+  const label =
+    getNearestAttribute(element, 'data-form-field-i18n-name') ||
+    getNearestAttribute(element, 'data-form-field-label') ||
+    getNearestAttribute(element, 'data-field-label') ||
+    getNearestAttribute(element, 'data-label');
+
+  return cleanShortText(label);
+}
+
+function getStableFieldName(element: HTMLElement): string {
+  return (
+    getNearestAttribute(element, 'data-form-field-name') ||
+    getNearestAttribute(element, 'data-field-name') ||
+    element.getAttribute('name') ||
+    ''
+  );
+}
+
+function getStableFieldId(element: HTMLElement): string {
+  return (
+    getNearestAttribute(element, 'data-form-field-id') ||
+    getNearestAttribute(element, 'data-field-id') ||
+    element.id ||
+    ''
+  );
+}
+
+function getTextWithoutControls(element: Element): string {
+  const clone = element.cloneNode(true) as Element;
+  clone.querySelectorAll('input, select, textarea, option, script, style, svg').forEach((node) => node.remove());
+  return cleanShortText(clone.textContent, 120);
+}
+
+function countFillableControls(container: Element): number {
+  return container.querySelectorAll(
+    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]), select, textarea, [contenteditable="true"]'
+  ).length;
+}
+
+function isScopedFieldContainer(container: Element): boolean {
+  const className = typeof (container as HTMLElement).className === 'string'
+    ? (container as HTMLElement).className.toLowerCase()
+    : '';
+  if (/formily-item|form-item|form__item|field-item|field__item|ant-form-item|el-form-item/.test(className)) {
+    return true;
+  }
+  return countFillableControls(container) <= 3;
+}
+
+function getFieldItem(element: HTMLElement): HTMLElement | null {
+  return element.closest<HTMLElement>(
+    '.ud-formily-item[data-form-field-id], .ant-form-item, .el-form-item, .form-item, .form-field, [class*="form-item"][data-form-field-id], [class*="field-item"][data-form-field-id]'
+  );
+}
+
+function augmentRangeLabel(element: HTMLElement, label: string): string {
+  const rangeWrapper = element.closest(
+    '.throne-biz-date-range-picker-wrapper, [class*="date-range"], [class*="DateRange"], [class*="range-picker"], [class*="RangePicker"]'
+  );
+  if (!rangeWrapper || !/起止|时间|日期|date|time|from|to/i.test(label)) return label;
+
+  const inputs = Array.from(
+    rangeWrapper.querySelectorAll<HTMLInputElement>('input:not([type="hidden"])')
+  ).filter((input) => isVisible(input));
+  const index = inputs.indexOf(element as HTMLInputElement);
+  if (index === 0) return `${label} 开始`;
+  if (index === inputs.length - 1 && inputs.length > 1) return `${label} 结束`;
+  return label;
+}
+
+function getNearbySelectedValue(element: HTMLElement): string {
+  const fieldItem = getFieldItem(element);
+  let previous = fieldItem?.previousElementSibling;
+  for (let i = 0; i < 3 && previous; i++) {
+    const selected = previous.querySelector(
+      '.ud__select__selector__selectItem, .ant-select-selection-item, .el-select__selected-item, [class*="selectItem"], [class*="selection-item"]'
+    );
+    const text = cleanShortText(selected?.textContent, 40);
+    if (text) return text;
+
+    const textOnly = getTextWithoutControls(previous);
+    const socialValue = textOnly.replace(/^社交平台/, '').trim();
+    if (socialValue && socialValue.length <= 40) return socialValue;
+
+    previous = previous.previousElementSibling;
+  }
+
+  const group = element.closest('[class*="array-card"], [class*="array"], [class*="row"], [class*="group"]');
+  if (group) {
+    const selectedItems = Array.from(
+      group.querySelectorAll('.ud__select__selector__selectItem, .ant-select-selection-item, .el-select__selected-item')
+    )
+      .map((node) => cleanShortText(node.textContent, 40))
+      .filter(Boolean);
+    const first = selectedItems.find((text) => !/请选择|select/i.test(text));
+    if (first) return first;
+  }
+
+  return '';
+}
+
+function augmentGenericLabel(element: HTMLElement, label: string): string {
+  const normalized = label.toLowerCase().replace(/\s+/g, '');
+  if (/^(url\/id|url|id|链接|网址)$/.test(normalized)) {
+    const selected = getNearbySelectedValue(element);
+    if (selected) return `${selected} ${label}`;
+  }
+  return label;
+}
+
 function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
+  const stableLabel = getStableFieldLabel(element);
+  if (stableLabel) {
+    return augmentGenericLabel(element, augmentRangeLabel(element, stableLabel));
+  }
+
   // ===== ATS 专用 label 策略 =====
+
+  const udFormItem = getFieldItem(element);
+  if (udFormItem) {
+    const label = udFormItem.querySelector(
+      '.ud-formily-item-label label, .ud-formily-item-label-content label, [class*="formily-item-label"] label'
+    );
+    const text = cleanShortText(label?.textContent);
+    if (text) return augmentGenericLabel(element, augmentRangeLabel(element, text));
+  }
 
   // Ant Design 系统（北森等）
   if (ats?.labelStrategy === 'ant') {
@@ -189,7 +342,7 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
     if (formItem) {
       const label = formItem.querySelector('.ant-form-item-label label, .ant-form-item-label > span');
       if (label?.textContent?.trim()) {
-        return cleanLabel(label.textContent.trim());
+        return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(label.textContent.trim())));
       }
     }
   }
@@ -200,7 +353,7 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
     if (formItem) {
       const label = formItem.querySelector('.el-form-item__label');
       if (label?.textContent?.trim()) {
-        return cleanLabel(label.textContent.trim());
+        return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(label.textContent.trim())));
       }
     }
   }
@@ -211,7 +364,7 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
     if (formItem) {
       const label = formItem.querySelector('.field-label, .form-label, label');
       if (label?.textContent?.trim()) {
-        return cleanLabel(label.textContent.trim());
+        return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(label.textContent.trim())));
       }
     }
   }
@@ -221,23 +374,28 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
   // 1. 通过 for 属性关联的 label
   if (element.id) {
     const label = document.querySelector(`label[for="${CSS.escape(element.id)}"]`);
-    if (label?.textContent) return cleanLabel(label.textContent.trim());
+    if (label?.textContent) return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(label.textContent.trim())));
   }
 
   // 2. 包裹在 form-item / form-group 容器中的 label
   const formItemSelectors = [
-    '.form-item', '.form-group', '.form-field',
+    '.form-item', '.form-field',
     '[class*="form-item"]', '[class*="form-group"]', '[class*="field-wrap"]',
-    '.ant-form-item', '.el-form-item',
+    '.ant-form-item', '.el-form-item', '.ud-formily-item', '[class*="formily-item"]',
     'tr', // 表格布局
   ];
   for (const sel of formItemSelectors) {
     const container = element.closest(sel);
     if (container) {
-      const label = container.querySelector('label, .label, [class*="label"]:not(input):not(select):not(textarea)');
-      if (label && label !== element && label.textContent?.trim()) {
-        const text = cleanLabel(label.textContent.trim());
-        if (text.length > 0 && text.length < 50) return text;
+      if (!isScopedFieldContainer(container)) continue;
+      const label = container.querySelector(
+        ':scope > label, :scope [class*="label"] label, :scope .label, :scope [class*="label"]:not(input):not(select):not(textarea)'
+      );
+      if (label && label !== element) {
+        const text = getTextWithoutControls(label);
+        if (text.length > 0 && text.length < 50) {
+          return augmentGenericLabel(element, augmentRangeLabel(element, text));
+        }
       }
     }
   }
@@ -248,7 +406,7 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
     const text = cleanLabel(parentLabel.textContent.trim());
     const val = (element as HTMLInputElement).value || '';
     const cleaned = text.replace(val, '').trim();
-    if (cleaned) return cleaned;
+    if (cleaned) return augmentGenericLabel(element, augmentRangeLabel(element, cleaned));
   }
 
   // 4. 前一个兄弟
@@ -257,7 +415,7 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
     if (['SPAN', 'DIV', 'LABEL', 'P', 'TD', 'TH', 'DT', 'STRONG', 'EM' ].includes(prev.tagName)) {
       const text = prev.textContent?.trim();
       if (text && text.length > 0 && text.length < 50 && !prev.querySelector('input, select, textarea')) {
-        return cleanLabel(text);
+        return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(text)));
       }
     }
     prev = prev.previousElementSibling;
@@ -265,18 +423,18 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
 
   // 5. aria-label, title, placeholder
   const ariaLabel = element.getAttribute('aria-label');
-  if (ariaLabel) return cleanLabel(ariaLabel);
+  if (ariaLabel) return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(ariaLabel)));
 
   const title = element.getAttribute('title');
-  if (title && title.length < 50) return cleanLabel(title);
+  if (title && title.length < 50) return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(title)));
 
   const placeholder = element.getAttribute('placeholder');
   if (placeholder && placeholder.length < 40 && !placeholder.includes('输入') && placeholder !== '请选择') {
-    return cleanLabel(placeholder);
+    return augmentGenericLabel(element, augmentRangeLabel(element, cleanLabel(placeholder)));
   }
 
   // 6. name 属性的中文化映射
-  const name = element.getAttribute('name') || '';
+  const name = getStableFieldName(element);
   if (name) {
     const nameMap: Record<string, string> = {
       name: '姓名', username: '姓名', realname: '姓名', fullname: '姓名',
@@ -292,8 +450,8 @@ function findLabel(element: HTMLElement, ats: DetectedATS | null): string {
       idcard: '身份证号', idnumber: '身份证号',
     };
     const mapped = nameMap[name.toLowerCase().replace(/[_-]/g, '')];
-    if (mapped) return mapped;
-    return name;
+    if (mapped) return augmentGenericLabel(element, augmentRangeLabel(element, mapped));
+    return augmentGenericLabel(element, augmentRangeLabel(element, name));
   }
 
   return '未知字段';
@@ -318,11 +476,18 @@ function getSectionContext(element: HTMLElement): string {
     if (!current) break;
 
     // 匹配常见的分区容器
-    const sectionSelectors = 'fieldset, section, [class*="section"], [class*="module"], [class*="block"], [class*="panel"], [class*="group"]';
-    if (current.matches(sectionSelectors)) {
-      const heading = current.querySelector('legend, h1, h2, h3, h4, h5, .title, .header, [class*="title"], [class*="header"]');
-      if (heading?.textContent?.trim() && heading.textContent.trim().length < 50) {
-        return heading.textContent.trim();
+    const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
+    const isSectionContainer =
+      current.matches('fieldset, section') ||
+      /section|module|block|panel|group|card|wrapper/.test(className);
+
+    if (isSectionContainer) {
+      const heading = current.querySelector(
+        'legend, h1, h2, h3, h4, h5, .title, .header, [class*="title"], [class*="Title"], [class*="header"], [class*="Header"], [class*="text"], [class*="Text"]'
+      );
+      const text = cleanShortText(heading?.textContent, 50);
+      if (text && !/添加|删除|更新|选择文件|上次上传/.test(text)) {
+        return text;
       }
     }
 
@@ -363,11 +528,13 @@ function scanFormFields(): FormField[] {
     const inputType = (el as HTMLInputElement).type?.toLowerCase();
 
     const label = findLabel(el, ats);
+    const stableFieldId = getStableFieldId(el);
+    const stableFieldName = getStableFieldName(el);
 
     const field: FormField = {
       id: genId(),
-      elementId: el.id || undefined,
-      elementName: el.getAttribute('name') || undefined,
+      elementId: el.id || stableFieldId || undefined,
+      elementName: stableFieldName || el.getAttribute('name') || undefined,
       tagName: el.tagName.toLowerCase(),
       inputType: inputType || undefined,
       label,

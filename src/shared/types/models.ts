@@ -190,6 +190,7 @@ export interface FillFieldResult {
   filledValue?: string;
   matchedFrom?: string; // 匹配来源：rule / semantic / llm
   confidence: number; // 匹配置信度 0-1
+  matchReason?: string; // 匹配/跳过原因
   errorMessage?: string;
 }
 

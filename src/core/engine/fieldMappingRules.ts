@@ -79,7 +79,7 @@ const BASIC_INFO_RULES: FieldMappingRule[] = [
   },
   // 身份证
   {
-    keywords: ['身份证', '身份证号', '身份证号码', '证件号', '证件号码', 'id number', 'id card', 'identity'],
+    keywords: ['身份证', '身份证号', '身份证号码', '个人证件', '证件', '证件号', '证件号码', 'id number', 'id card', 'identity', 'identification'],
     dataPath: 'personalInfo.idNumber',
     category: 'basic',
     priority: 95,
@@ -135,7 +135,7 @@ const BASIC_INFO_RULES: FieldMappingRule[] = [
   },
   // 作品集
   {
-    keywords: ['作品集', '个人作品', '作品链接', '个人网站', '个人主页', '博客', 'portfolio', 'personal website', 'blog', 'website'],
+    keywords: ['作品集', '个人作品', '作品链接', '作品url', '作品网址', '个人网站', '个人主页', '博客', 'portfolio', 'personal website', 'blog', 'website'],
     dataPath: 'personalInfo.portfolio',
     category: 'basic',
     priority: 75,

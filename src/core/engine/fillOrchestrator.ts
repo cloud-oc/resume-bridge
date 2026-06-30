@@ -61,7 +61,10 @@ export async function executeFullFill(
     onProgress?.('正在填充表单...', 70);
 
     const fillData = matchResults
-      .filter((m) => m.value && m.confidence > 0.3)
+      .filter((match) => {
+        const field = fields.find((f) => f.id === match.fieldId);
+        return shouldAutoFill(match, field);
+      })
       .map((m) => ({
         fieldId: m.fieldId,
         value: m.value,
@@ -96,7 +99,10 @@ export async function executeFullFill(
         filledValue: match.value || undefined,
         matchedFrom: match.matchedBy,
         confidence: match.confidence,
-        errorMessage: match.value ? '匹配到数据但未执行填充' : '未找到匹配的用户数据',
+        matchReason: match.reason,
+        errorMessage: match.value
+          ? getPendingReason(match, field)
+          : '未找到可靠匹配的用户数据',
       };
     });
 
@@ -230,10 +236,9 @@ async function llmFallbackMatch(
 
   const fieldById = new Map(fields.map((field) => [field.id, field]));
 
-  // 只对更像真实网申字段、且规则无法可靠处理的字段调用 LLM，控制等待时间和成本。
+  // 对更像真实网申字段、且规则无法可靠处理的字段调用 LLM，控制等待时间和成本。
   const unmatchedResults = matchResults
-    .filter((m) => m.confidence < 0.5 && m.matchedBy !== 'rule')
-    .filter((m) => isLLMFallbackCandidate(fieldById.get(m.fieldId)))
+    .filter((m) => shouldAskLLM(m, fieldById.get(m.fieldId)))
     .slice(0, 12);
 
   // 最多并发 3 个 LLM 请求，避免扩展侧边栏长时间卡顿。
@@ -249,14 +254,26 @@ async function llmFallbackMatch(
           const llmResult = await llmMatchField(
             aiConfig,
             field.label,
-            `${field.sectionContext || ''} ${field.placeholder || ''}`.trim(),
+            [
+              field.sectionContext || '',
+              field.placeholder ? `placeholder: ${field.placeholder}` : '',
+              field.elementName ? `name: ${field.elementName}` : '',
+              field.elementId ? `id: ${field.elementId}` : '',
+              matchResult.value ? `current rule candidate: ${matchResult.value}` : '',
+            ].filter(Boolean).join('\n'),
             userSummary
           );
 
-          if (llmResult.value && llmResult.confidence > matchResult.confidence) {
+          if (llmResult.value && llmResult.confidence >= Math.max(0.58, matchResult.confidence - 0.08)) {
             matchResult.value = llmResult.value;
             matchResult.matchedBy = 'llm';
             matchResult.confidence = llmResult.confidence;
+            matchResult.reason = llmResult.reason || 'LLM fallback matched this field';
+          } else if (!llmResult.value && matchResult.confidence < 0.72) {
+            matchResult.value = '';
+            matchResult.matchedBy = 'none';
+            matchResult.confidence = 0;
+            matchResult.reason = llmResult.reason || 'LLM could not verify this ambiguous field';
           }
         } catch {
           // LLM 调用失败，静默跳过
@@ -266,16 +283,84 @@ async function llmFallbackMatch(
   }
 }
 
+function shouldAskLLM(match: MatchResult, field?: FormField): boolean {
+  if (!isLLMFallbackCandidate(field)) return false;
+  if (match.matchedBy === 'none') return true;
+  if (match.matchedBy === 'semantic' && match.confidence < 0.7) return true;
+  if (match.matchedBy === 'rule' && match.confidence < 0.72) return true;
+  return isHighRiskField(field) && match.confidence < 0.86;
+}
+
 function isLLMFallbackCandidate(field?: FormField): boolean {
   if (!field) return false;
   if (field.inputType && ['password', 'file', 'checkbox', 'radio'].includes(field.inputType)) return false;
 
-  const text = `${field.label} ${field.sectionContext || ''} ${field.placeholder || ''} ${field.elementName || ''}`.toLowerCase();
+  const text = `${field.label} ${field.sectionContext || ''} ${field.placeholder || ''} ${field.elementName || ''} ${field.elementId || ''}`.toLowerCase();
   if (/验证码|校验码|密码|搜索|筛选|评论|备注|captcha|verify|password|search|filter/.test(text)) {
     return false;
   }
 
-  return /姓名|电话|手机|邮箱|学校|学历|专业|岗位|职位|城市|地址|公司|经历|项目|技能|证书|薪资|到岗|自我|规划|优势|意向|name|phone|mobile|email|school|degree|major|position|city|company|experience|skill|salary|available|summary/.test(text);
+  return /姓名|电话|手机|邮箱|学校|学院|学历|专业|岗位|职位|城市|地址|公司|经历|项目|技能|证书|薪资|到岗|自我|规划|优势|意向|证件|身份证|链接|网站|github|name|phone|mobile|email|school|college|degree|major|position|city|company|experience|skill|salary|available|summary|identity|identification|link|website/.test(text);
+}
+
+function shouldAutoFill(match: MatchResult, field?: FormField): boolean {
+  if (!field || !match.value) return false;
+  if (!isValueCompatibleWithField(field, match.value)) {
+    match.reason = match.reason || 'Matched value failed field format checks';
+    return false;
+  }
+
+  if (match.matchedBy === 'llm') return match.confidence >= 0.62;
+  if (match.matchedBy === 'rule') return match.confidence >= (isHighRiskField(field) ? 0.82 : 0.74);
+  if (match.matchedBy === 'semantic') return match.confidence >= 0.68 && !isHighRiskField(field);
+  return false;
+}
+
+export const __fillOrchestratorTestUtils = {
+  shouldAutoFill,
+  isValueCompatibleWithField,
+};
+
+function getPendingReason(match: MatchResult, field?: FormField): string {
+  if (!field) return '匹配到数据但未执行填充';
+  if (!isValueCompatibleWithField(field, match.value)) return '匹配值与字段格式不一致，已留待确认';
+  if (match.confidence < 0.62) return '置信度较低，已留待确认';
+  if (isHighRiskField(field)) return '字段容易误填，已留待确认';
+  return '匹配到数据但未达到自动填充阈值';
+}
+
+function isHighRiskField(field?: FormField): boolean {
+  if (!field) return true;
+  const text = normalizeText(`${field.label} ${field.sectionContext || ''} ${field.placeholder || ''} ${field.elementName || ''} ${field.elementId || ''}`);
+  return /描述|说明|内容|经历|项目|证书|竞赛|获奖|奖项|语言|渠道|证件|身份证|url|链接|网站|id/.test(text);
+}
+
+function isValueCompatibleWithField(field: FormField, value: string): boolean {
+  const label = normalizeText(`${field.label} ${field.placeholder || ''} ${field.elementName || ''} ${field.elementId || ''}`);
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+
+  if (/邮箱|email|mail/.test(label)) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  if (/手机|手机号|手机号码|电话|phone|mobile|tel/.test(label)) return /(?:\+?\d[\d\s-]{7,}\d)/.test(trimmed);
+  if (/身份证|证件号|证件号码|idnumber|identification|identity/.test(label)) {
+    return /^[0-9A-Za-z]{6,24}$/.test(trimmed) && /\d/.test(trimmed);
+  }
+  if (/github/.test(label)) return /github\.com|^[A-Za-z0-9_.-]+$/.test(trimmed);
+  if (/个人网站|作品集|博客|链接|url|website|portfolio|blog/.test(label)) {
+    return /^(https?:\/\/|www\.|[A-Za-z0-9_.-]+\.[A-Za-z]{2,})/.test(trimmed);
+  }
+  if (/日期|时间|date|入学|毕业|开始|结束|起止|到岗/.test(label)) {
+    return /\d{4}([./年-]\d{1,2})?([./月-]\d{1,2})?|至今|现在|present|current/i.test(trimmed);
+  }
+
+  return true;
+}
+
+function normalizeText(text: string): string {
+  return text
+    .replace(/\s+/g, '')
+    .replace(/[_-]+/g, '')
+    .toLowerCase();
 }
 
 /** 生成用户数据文本摘要（用于 LLM 上下文） */

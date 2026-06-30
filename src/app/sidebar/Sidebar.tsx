@@ -356,6 +356,12 @@ export default function Sidebar() {
                       {field.filledValue && (
                         <div className="result-field-value">{field.filledValue}</div>
                       )}
+                      <div className="result-field-meta">
+                        {field.matchedFrom || 'none'} · {Math.round(field.confidence * 100)}%
+                      </div>
+                      {field.matchReason && (
+                        <div className="result-field-reason">{field.matchReason}</div>
+                      )}
                       {field.errorMessage && (
                         <div className="result-field-error">{field.errorMessage}</div>
                       )}

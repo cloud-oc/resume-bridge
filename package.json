@@ -8,6 +8,7 @@
     "dev": "vite build --watch",
     "build": "tsc && vite build",
     "clean": "node scripts/clean.mjs",
+    "test": "node scripts/test-resume-parser.mjs && node scripts/test-field-matching.mjs",
     "package": "npm run build && node scripts/package-extension.mjs",
     "package:firefox": "npm run build && node scripts/package-extension.mjs --firefox-only",
     "preview": "vite preview"

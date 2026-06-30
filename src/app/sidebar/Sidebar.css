@@ -339,7 +339,9 @@
 }
 
 .result-field-value,
-.result-field-error {
+.result-field-error,
+.result-field-meta,
+.result-field-reason {
   margin-top: 6px;
   font-size: 11px;
   overflow-wrap: anywhere;
@@ -347,6 +349,17 @@
 
 .result-field-value {
   color: var(--ca-text-secondary);
+}
+
+.result-field-meta {
+  color: var(--ca-text-tertiary);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.result-field-reason {
+  color: var(--ca-text-tertiary);
 }
 
 .result-field-error {

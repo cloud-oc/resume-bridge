@@ -150,7 +150,7 @@ export async function llmMatchField(
   fieldLabel: string,
   fieldContext: string,
   userDataSummary: string
-): Promise<{ value: string; confidence: number }> {
+): Promise<{ value: string; confidence: number; reason?: string }> {
   const prompt = `你是一个网申表单智能填充助手。
   
 用户的个人信息如下：
@@ -160,27 +160,43 @@ ${userDataSummary}
 - 字段标签：${fieldLabel}
 - 字段上下文：${fieldContext}
 
-请根据用户的个人信息，给出这个字段最合适的填写内容。
+请根据用户的个人信息，判断这个字段最合适的填写内容。
 注意：
-1. 只返回填写的内容本身，不要有任何解释
-2. 如果用户信息中没有对应的内容，返回空字符串
-3. 确保内容格式正确（如日期、电话号码等）
-4. 内容应简洁明了，符合求职场景`;
+1. 只能使用用户信息中已经存在的事实，不要编造
+2. 如果字段标签或上下文不明确，返回空字符串
+3. 如果用户信息中没有对应内容，返回空字符串
+4. 确保内容格式正确（如日期、电话号码、邮箱、证件号等）
+5. 返回 JSON，不要返回 Markdown：
+{"value":"要填写的内容或空字符串","confidence":0到1之间的小数,"reason":"一句很短的原因"}`;
 
   try {
     const response = await callLLM(config, {
       messages: [
-        { role: 'system', content: '你是网申智能填充助手，只返回表单字段的填写内容。' },
+        { role: 'system', content: '你是谨慎的网申智能填充助手。只能返回 JSON；不确定时 value 为空字符串。' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.1,
-      maxTokens: 500,
+      maxTokens: 300,
     });
 
     const value = response.content.trim();
+    try {
+      const parsed = JSON.parse(value) as { value?: unknown; confidence?: unknown; reason?: unknown };
+      const parsedValue = typeof parsed.value === 'string' ? parsed.value.trim() : '';
+      const parsedConfidence = typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
+      return {
+        value: parsedValue,
+        confidence: parsedValue ? Math.max(0, Math.min(0.82, Number.isFinite(parsedConfidence) ? parsedConfidence : 0.62)) : 0,
+        reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 120) : undefined,
+      };
+    } catch {
+      // 兼容旧模型或用户自定义模型返回纯文本的情况。
+    }
+
     return {
       value,
-      confidence: value ? 0.7 : 0,
+      confidence: value ? 0.62 : 0,
+      reason: 'LLM returned plain text',
     };
   } catch (error) {
     console.error('[Resume Bridge] LLM 匹配失败:', error);
