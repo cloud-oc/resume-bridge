@@ -285,7 +285,7 @@ async function llmFallbackMatch(
 
 function shouldAskLLM(match: MatchResult, field?: FormField): boolean {
   if (!isLLMFallbackCandidate(field)) return false;
-  if (match.matchedBy === 'none') return true;
+  if (match.matchedBy === 'none' && match.confidence === 0) return false;
   if (match.matchedBy === 'semantic' && match.confidence < 0.7) return true;
   if (match.matchedBy === 'rule' && match.confidence < 0.72) return true;
   return isHighRiskField(field) && match.confidence < 0.86;
@@ -319,6 +319,7 @@ function shouldAutoFill(match: MatchResult, field?: FormField): boolean {
 export const __fillOrchestratorTestUtils = {
   shouldAutoFill,
   isValueCompatibleWithField,
+  shouldAskLLM,
 };
 
 function getPendingReason(match: MatchResult, field?: FormField): string {
@@ -394,6 +395,7 @@ function generateUserDataSummary(userData: UserDataContext): string {
     parts.push(`\n${exp.type}经历：${exp.organization} - ${exp.role}`);
     if (exp.startDate || exp.endDate) parts.push(`  时间：${exp.startDate || '未填写'} - ${exp.endDate || '至今'}`);
     if (exp.location) parts.push(`  地点：${exp.location}`);
+    if (exp.url) parts.push(`  链接：${exp.url}`);
     if (exp.description) parts.push(`  描述：${exp.description}`);
     if (exp.bullets.length) parts.push(`  要点：${exp.bullets.filter(Boolean).join('；')}`);
     if (exp.techStack?.length) parts.push(`  技术/工具：${exp.techStack.filter(Boolean).join('、')}`);

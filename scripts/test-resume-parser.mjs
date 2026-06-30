@@ -97,4 +97,30 @@ assert.equal(fallbackResult.personalInfo?.phone, '13700137000');
 assert.equal(fallbackResult.educations?.[0]?.school, '复旦大学 软件工程 本科');
 assert.ok(fallbackResult.experiences?.[0]?.bullets?.some((item) => item.includes('智能填充')));
 
+const hiddenLinkResult = normalizeParsedResumeData({
+  basic_info: {
+    full_name: '赵六',
+    email: 'zhaoliu@example.com',
+  },
+  project_experiences: [
+    {
+      project_name: 'Resume Bridge',
+      role: '产品负责人',
+      description: '设计网申智能填充插件',
+    },
+  ],
+}, `
+赵六
+邮箱：zhaoliu@example.com
+PDF_HIDDEN_LINKS: https://github.com/cloud-oc | category=github | label=GitHub
+PDF_HIDDEN_LINKS: https://www.linkedin.com/in/cloud09 | category=linkedin | label=LinkedIn
+PDF_HIDDEN_LINKS: https://cloud09.space | category=portfolio | label=Portfolio
+PDF_HIDDEN_LINKS: https://resume-bridge-demo.vercel.app | category=project | label=Resume Bridge Demo
+`);
+
+assert.equal(hiddenLinkResult.personalInfo?.github, 'https://github.com/cloud-oc');
+assert.equal(hiddenLinkResult.personalInfo?.linkedin, 'https://www.linkedin.com/in/cloud09');
+assert.equal(hiddenLinkResult.personalInfo?.portfolio, 'https://cloud09.space');
+assert.equal(hiddenLinkResult.experiences?.[0]?.url, 'https://resume-bridge-demo.vercel.app');
+
 console.log('resume parser checks passed');

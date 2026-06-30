@@ -15,8 +15,11 @@ import {
 type ParsedObject = Record<string, unknown>;
 type DatePair = { startDate: string; endDate: string };
 type ParsedResumeData = NonNullable<ResumeParseResult['data']>;
+type LinkCategory = 'github' | 'linkedin' | 'portfolio' | 'sns' | 'project' | 'company' | 'other';
+type ExtractedLink = { url: string; label?: string; category: LinkCategory };
 
 const SOURCE_KEY = '__resumeBridgeSourceKey';
+const PDF_LINKS_HEADER = 'PDF_HIDDEN_LINKS';
 
 /** 简历解析结果 */
 export interface ResumeParseResult {
@@ -102,6 +105,128 @@ function normalizeStringArray(value: unknown): string[] {
   const raw = asString(value);
   if (!raw) return [];
   return raw.split(/\n|,|，|、|；|;/).map((item) => item.trim()).filter(Boolean);
+}
+
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/[),，。；;]+$/g, '');
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[\w.-]+\.[A-Za-z]{2,}(?:\/\S*)?$/.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function extractUrlsFromText(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s<>"'）)，。；;]+|(?:www\.)?[\w.-]+\.[A-Za-z]{2,}(?:\/[^\s<>"'）)，。；;]*)?/gi) || [];
+  const urls = matches
+    .map(normalizeUrl)
+    .filter((url) => /^https?:\/\//i.test(url));
+  return Array.from(new Set(urls));
+}
+
+function classifyUrl(url: string, label = ''): LinkCategory {
+  const value = `${url} ${label}`.toLowerCase();
+  if (/github\.com/.test(value)) return 'github';
+  if (/linkedin\.com|领英/.test(value)) return 'linkedin';
+  if (/twitter\.com|x\.com|weibo\.com|zhihu\.com|bilibili\.com|medium\.com|facebook\.com|instagram\.com|sns|social|社交|主页/.test(value)) {
+    return 'sns';
+  }
+  if (/project|demo|作品|case|prototype|figma\.com|behance\.net|dribbble\.com|项目/.test(value)) {
+    return 'project';
+  }
+  if (/portfolio|作品集|个人网站|个人主页|homepage|personal|blog|博客|notion\.site|vercel\.app|netlify\.app|github\.io/.test(value)) {
+    return 'portfolio';
+  }
+  if (/company|corp|inc|ltd|招聘|career|careers|about|公司|企业|官网/.test(value)) {
+    return 'company';
+  }
+  return 'other';
+}
+
+function parseHiddenLinkLines(text: string): ExtractedLink[] {
+  const links: ExtractedLink[] = [];
+  for (const line of text.split('\n')) {
+    if (!line.startsWith(`${PDF_LINKS_HEADER}:`)) continue;
+    const payload = line.slice(PDF_LINKS_HEADER.length + 1).trim();
+    const parts = payload.split(/\s+\|\s+/);
+    const url = normalizeUrl(parts[0] || '');
+    if (!/^https?:\/\//i.test(url)) continue;
+    const label = parts.find((part) => part.startsWith('label='))?.replace(/^label=/, '').trim() || '';
+    const categoryText = parts.find((part) => part.startsWith('category='))?.replace(/^category=/, '').trim() || '';
+    const category = ['github', 'linkedin', 'portfolio', 'sns', 'project', 'company', 'other'].includes(categoryText)
+      ? categoryText as LinkCategory
+      : classifyUrl(url, label);
+    links.push({ url, label, category });
+  }
+  return links;
+}
+
+function collectLinksFromSourceText(text: string): ExtractedLink[] {
+  const explicitUrls = extractUrlsFromText(text).map((url) => ({
+    url,
+    label: '',
+    category: classifyUrl(url),
+  }));
+  const hiddenLinks = parseHiddenLinkLines(text);
+  const byUrl = new Map<string, ExtractedLink>();
+  [...explicitUrls, ...hiddenLinks].forEach((link) => {
+    const existing = byUrl.get(link.url);
+    if (!existing || existing.category === 'other') {
+      byUrl.set(link.url, link);
+    }
+  });
+  return Array.from(byUrl.values());
+}
+
+function mergeLinksIntoParsedData(data: ParsedResumeData, sourceText: string): void {
+  const links = collectLinksFromSourceText(sourceText);
+  if (!links.length) return;
+
+  const personalInfo = data.personalInfo || {};
+  for (const link of links) {
+    if (link.category === 'github' && !personalInfo.github) personalInfo.github = link.url;
+    if (link.category === 'linkedin' && !personalInfo.linkedin) personalInfo.linkedin = link.url;
+    if ((link.category === 'portfolio' || link.category === 'sns') && !personalInfo.portfolio) {
+      personalInfo.portfolio = link.url;
+    }
+  }
+
+  if (Object.values(personalInfo).some(hasValue)) {
+    data.personalInfo = personalInfo;
+  }
+
+  const experienceLinks = links.filter((link) => link.category === 'project' || link.category === 'company');
+  if (!experienceLinks.length) return;
+
+  for (const link of experienceLinks) {
+    const match = data.experiences?.find((exp) => {
+      if (exp.url) return false;
+      const identity = `${exp.organization || ''} ${exp.role || ''} ${exp.description || ''} ${exp.bullets?.join(' ') || ''}`.toLowerCase();
+      const host = new URL(link.url).hostname.replace(/^www\./, '').split('.')[0];
+      return Boolean(host && identity.includes(host)) || Boolean(link.label && identity.includes(link.label.toLowerCase()));
+    }) || data.experiences?.find((exp) =>
+      !exp.url && link.category === 'project' && exp.type === '项目'
+    ) || data.experiences?.find((exp) =>
+      !exp.url && link.category === 'company' && (exp.type === '工作' || exp.type === '实习')
+    );
+    if (match) {
+      match.url = link.url;
+      continue;
+    }
+
+    if (link.category === 'project') {
+      data.experiences = data.experiences || [];
+      data.experiences.push({
+        type: '项目',
+        organization: link.label || new URL(link.url).hostname.replace(/^www\./, ''),
+        role: '',
+        startDate: '',
+        endDate: '',
+        url: link.url,
+        description: link.label ? `${link.label} 项目链接` : '项目链接',
+        bullets: [],
+      });
+    }
+  }
 }
 
 function normalizeDate(value: unknown): string {
@@ -303,9 +428,9 @@ export function normalizeParsedResumeData(
       currentCity: pickString(personalInfo, ['currentCity', 'current_city', 'city', 'location', 'address', '现居城市', '所在地', '居住地']),
       ethnicity: pickString(personalInfo, ['ethnicity', '民族']),
       wechat: pickString(personalInfo, ['wechat', 'weChat', 'weixin', '微信']),
-      linkedin: pickString(personalInfo, ['linkedin', 'linkedIn', 'LinkedIn', '领英']),
-      github: pickString(personalInfo, ['github', 'GitHub']),
-      portfolio: pickString(personalInfo, ['portfolio', 'website', 'personalWebsite', '作品集', '个人网站']),
+      linkedin: pickString(personalInfo, ['linkedin', 'linkedIn', 'LinkedIn', '领英', 'linkedinUrl', 'linkedInUrl']),
+      github: pickString(personalInfo, ['github', 'GitHub', 'githubUrl']),
+      portfolio: pickString(personalInfo, ['portfolio', 'website', 'personalWebsite', 'homepage', 'blog', '作品集', '个人网站', '个人主页', '博客']),
       expectedSalary: pickString(personalInfo, ['expectedSalary', 'salaryExpectation', '期望薪资', '薪资期望']),
       availableDate: normalizeDate(readValue(personalInfo, ['availableDate', 'availability', '可到岗日期', '到岗时间'])),
       targetCities: normalizeStringArray(readValue(personalInfo, ['targetCities', 'targetCity', 'preferredCities', '意向城市', '期望城市'])),
@@ -423,6 +548,7 @@ export function normalizeParsedResumeData(
           startDate: dates.startDate,
           endDate: dates.endDate,
           location: pickString(exp, ['location', 'city', '地点', '城市']),
+          url: pickString(exp, ['url', 'link', 'website', 'projectUrl', 'project_url', 'demoUrl', 'demo_url', 'companyUrl', 'company_url', '项目链接', '项目网址', '作品链接', '公司网址', '官网']),
           description: pickString(exp, ['description', 'summary', 'overview', 'projectDescription', 'project_description', '描述', '核心描述', '项目描述', '简介']),
           bullets: normalizeBullets(readValue(exp, ['bullets', 'bulletPoints', 'highlights', 'achievements', 'responsibilities', 'details', 'content', '要点', '职责', '成果', '工作内容', '项目内容'])),
           techStack: normalizeStringArray(readValue(exp, ['techStack', 'technologies', 'tools', '技术栈', '使用技术', '工具'])),
@@ -434,7 +560,9 @@ export function normalizeParsedResumeData(
 
   data.skills = normalizeStringArray(readValue(parsed, ['skills', 'skill', 'technicalSkills', 'technical_skills', '技能', '专业技能']));
 
-  return mergeParsedResumeData(data, extractResumeDataFromText(sourceText));
+  const merged = mergeParsedResumeData(data, extractResumeDataFromText(sourceText));
+  mergeLinksIntoParsedData(merged, sourceText);
+  return merged;
 }
 
 function cleanResumeText(text: string): string {
@@ -624,6 +752,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
     const textParts: string[] = [];
+    const hiddenLinks: string[] = [];
 
     for (let i = 1; i <= pdf.numPages; i += 1) {
       const page = await pdf.getPage(i);
@@ -633,9 +762,30 @@ export async function extractTextFromPDF(file: File): Promise<string> {
         .filter(Boolean)
         .join(' ');
       textParts.push(pageText);
+
+      const annotations = await page.getAnnotations();
+      annotations.forEach((annotation: Record<string, unknown>) => {
+        const rawUrl = typeof annotation.url === 'string'
+          ? annotation.url
+          : typeof annotation.unsafeUrl === 'string'
+            ? annotation.unsafeUrl
+            : '';
+        const url = normalizeUrl(rawUrl);
+        if (!/^https?:\/\//i.test(url)) return;
+
+        const label = typeof annotation.contentsObj === 'object' && annotation.contentsObj
+          ? asString((annotation.contentsObj as Record<string, unknown>).str)
+          : asString(annotation.contents);
+        const category = classifyUrl(url, label);
+        hiddenLinks.push(`${PDF_LINKS_HEADER}: ${url} | category=${category}${label ? ` | label=${label}` : ''}`);
+      });
     }
 
-    const text = textParts.join('\n').replace(/\s+/g, ' ').trim();
+    const uniqueHiddenLinks = Array.from(new Set(hiddenLinks));
+    const text = [
+      textParts.join('\n').replace(/\s+/g, ' ').trim(),
+      uniqueHiddenLinks.join('\n'),
+    ].filter(Boolean).join('\n');
     if (text.length < 30) {
       throw new Error('PDF 未提取到足够文本，可能是扫描版图片简历');
     }
@@ -845,6 +995,7 @@ export async function saveResumeData(
         startDate: normalizeDate(exp.startDate),
         endDate: normalizeDate(exp.endDate),
         location: exp.location || '',
+        url: exp.url || '',
         description: exp.description || '',
         bullets: exp.bullets?.filter(Boolean) || [],
         techStack: exp.techStack?.filter(Boolean) || [],

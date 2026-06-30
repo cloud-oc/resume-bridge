@@ -83,6 +83,7 @@ export interface Experience {
   startDate: string;
   endDate: string;
   location?: string;
+  url?: string; // 项目/公司/经历相关链接
   description: string; // 核心描述
   bullets: string[]; // 要点列表
   techStack?: string[]; // 技术栈

@@ -467,7 +467,7 @@ function applyContextCompatibility(
     .map((item) => item.text)
     .join(' ');
 
-  if (/^(url|id|urlid)$/.test(labelText) && rule.dataPath !== 'personalInfo.github' && rule.dataPath !== 'personalInfo.linkedin' && rule.dataPath !== 'personalInfo.portfolio') {
+  if (/^(url|id|urlid)$/.test(labelText) && rule.dataPath !== 'personalInfo.github' && rule.dataPath !== 'personalInfo.linkedin' && rule.dataPath !== 'personalInfo.portfolio' && rule.dataPath !== 'experience.url') {
     return 0;
   }
 
@@ -488,6 +488,17 @@ function applyContextCompatibility(
 
   if (/个人网站|个人主页|作品集|作品链接|博客|portfolio|website|blog/.test(labelText) && rule.dataPath === 'personalInfo.github') {
     return score * 0.35;
+  }
+
+  if (/项目经历|项目链接|项目网址|项目主页|公司官网|公司网址|企业官网|demo|project/.test(`${sectionText} ${mainIdentity}`) && rule.dataPath === 'personalInfo.portfolio') {
+    return score * 0.45;
+  }
+
+  if (
+    rule.dataPath === 'experience.url' &&
+    !/实习|工作|项目|科研|竞赛|比赛|活动|经历|公司|企业|官网|demo|project|company|work|intern/.test(`${sectionText} ${mainIdentity}`)
+  ) {
+    return 0;
   }
 
   const sectionCategory = inferCategory(sectionText);

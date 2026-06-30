@@ -265,6 +265,9 @@ ${resumeText.substring(0, 5000)}
   "gender": "男/女",
   "phone": "手机号",
   "email": "邮箱",
+  "linkedin": "LinkedIn/领英主页 URL",
+  "github": "GitHub 主页 URL",
+  "portfolio": "个人网站/作品集 URL",
   "birthDate": "YYYY-MM-DD",
   "nativePlace": "籍贯",
   "politicalStatus": "政治面貌",
@@ -287,6 +290,7 @@ ${resumeText.substring(0, 5000)}
       "role": "岗位/角色",
       "startDate": "YYYY-MM",
       "endDate": "YYYY-MM",
+      "url": "项目/公司/作品链接",
       "description": "描述",
       "bullets": ["要点1", "要点2"]
     }
@@ -297,7 +301,8 @@ ${resumeText.substring(0, 5000)}
 注意：
 1. 只输出合法的 JSON，不要有任何前缀后缀
 2. 无法提取的字段留空字符串
-3. 日期统一为 YYYY-MM 格式`;
+3. 日期统一为 YYYY-MM 格式
+4. 如果文本中出现 PDF_HIDDEN_LINKS，请识别链接类型：GitHub/LinkedIn/个人网站/作品集写入个人信息；项目、作品、Demo、公司官网写入对应 experiences.url；不确定归属时不要编造`;
 
   try {
     const response = await callLLM(config, {

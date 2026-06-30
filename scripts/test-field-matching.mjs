@@ -309,6 +309,10 @@ const genericUnknown = match({
 });
 assert.equal(genericUnknown.value, '');
 assert.equal(genericUnknown.matchedBy, 'none');
+assert.equal(__fillOrchestratorTestUtils.shouldAskLLM(genericUnknown, field({
+  label: '未知字段',
+  sectionContext: '教育经历',
+})), false);
 
 const githubLink = match({
   label: 'Github URL / ID',
@@ -345,5 +349,11 @@ const genericUrlId = match({
 });
 assert.equal(genericUrlId.value, '');
 assert.equal(genericUrlId.matchedBy, 'none');
+assert.equal(__fillOrchestratorTestUtils.shouldAskLLM(genericUrlId, field({
+  label: 'URL / ID',
+  elementName: 'link',
+  elementId: 'link',
+  sectionContext: '社交账号',
+})), false);
 
 console.log('field matching checks passed');

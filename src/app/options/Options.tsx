@@ -71,6 +71,7 @@ function createEmptyExperience(): Experience {
     role: '',
     startDate: '',
     endDate: '',
+    url: '',
     description: '',
     bullets: [''],
     versions: [],
@@ -589,6 +590,12 @@ export default function Options() {
                       <input className="ca-input" value={exp.location || ''}
                         onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, location: e.target.value }; setExperiences(u); }}
                         placeholder={t('options.experience.locationPlaceholder')} />
+                    </div>
+                    <div className="ca-form-group">
+                      <label className="ca-label">{t('options.experience.url')}</label>
+                      <input className="ca-input" value={exp.url || ''}
+                        onChange={(e) => { const u = [...experiences]; u[index] = { ...exp, url: e.target.value }; setExperiences(u); }}
+                        placeholder={t('options.experience.urlPlaceholder')} />
                     </div>
                     <div className="ca-form-group">
                       <label className="ca-label">{t('options.experience.start')}</label>

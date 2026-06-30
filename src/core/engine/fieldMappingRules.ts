@@ -310,6 +310,12 @@ const EXPERIENCE_RULES: FieldMappingRule[] = [
     priority: 75,
   },
   {
+    keywords: ['项目链接', '项目网址', '项目主页', '作品链接', '作品网址', '演示链接', 'demo', 'demo url', 'project url', 'project link', '公司官网', '公司网址', '官网', 'website'],
+    dataPath: 'experience.url',
+    category: 'experience',
+    priority: 82,
+  },
+  {
     keywords: ['工作内容', '工作描述', '职责描述', '主要职责', '岗位职责', '工作职责', '实习内容', '核心职责', 'job description', 'responsibilities', 'description', 'duties'],
     dataPath: 'experience.description',
     category: 'experience',
