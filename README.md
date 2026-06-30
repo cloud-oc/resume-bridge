@@ -17,7 +17,7 @@
 | Feature | Description |
 | --- | --- |
 | Smart fill | Scan an online application page, match fields, and fill reviewable content |
-| Three-stage matching | Fast rule matching, fuzzy semantic matching, and optional LLM fallback |
+| AI-assisted matching | Fast rule matching, fuzzy semantic matching, and optional whole-form AI planning |
 | Resume import | Upload PDF / Word / TXT / Markdown resumes and extract structured profile data |
 | Open-answer drafting | Generate editable drafts for online application questions from local profile data |
 | ATS platform profiles | Includes adapters for Beisen, Moka, Zhaopin, Nowcoder, 51job, Greenhouse, and more |
@@ -75,7 +75,7 @@ Generated packages:
 
 1. Open the extension popup and go to the profile library.
 2. Fill in personal info, education, work experience, and project experience.
-3. Optional: configure an AI model if you need resume import, open-answer drafting, or AI fallback.
+3. Optional: configure an AI model if you need resume import, open-answer drafting, or stronger whole-form matching.
 4. Optional: import a resume and review extracted fields before saving.
 5. Open an online application page.
 6. Open the Resume Bridge side panel and scan the form.

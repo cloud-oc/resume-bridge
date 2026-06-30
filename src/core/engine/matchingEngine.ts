@@ -1,6 +1,6 @@
 // ============================================================
 // 智能字段匹配引擎
-// 实现三级匹配：规则匹配 → 语义匹配 → LLM 兜底
+// 实现本地匹配：规则匹配 → 语义匹配；可由编排器接入 LLM 整页规划
 // ============================================================
 
 import type { FormField, PersonalInfo, Education, Experience, SkillInfo } from '@/shared/types/models';
@@ -24,6 +24,12 @@ export interface MatchResult {
   recommendedOption?: string;
   /** 匹配诊断信息，用于结果页展示和排查 */
   reason?: string;
+  /** 是否需要人工复核，尤其用于 AI 生成/改写内容 */
+  reviewRequired?: boolean;
+  /** 内容是否由 AI 生成或改写 */
+  aiGenerated?: boolean;
+  /** AI 内容来源类型 */
+  aiSource?: 'profile' | 'rewritten' | 'generated' | 'empty' | 'unknown';
 }
 
 /** 用户数据上下文 */

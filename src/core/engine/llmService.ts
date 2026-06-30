@@ -5,7 +5,7 @@
 // API Key 仅存储在本地，直接调用厂商官方 API
 // ============================================================
 
-import type { AIModelConfig } from '@/shared/types/models';
+import type { AIModelConfig, FormField } from '@/shared/types/models';
 
 /** LLM 调用参数 */
 interface LLMRequest {
@@ -18,6 +18,29 @@ interface LLMRequest {
 interface LLMResponse {
   content: string;
   usage?: { promptTokens: number; completionTokens: number };
+}
+
+export type LLMFieldPlanSource = 'profile' | 'rewritten' | 'generated' | 'empty' | 'unknown';
+
+export interface LLMFieldPlanningInput {
+  field: FormField;
+  currentCandidate?: {
+    value: string;
+    matchedBy: string;
+    confidence: number;
+    reason?: string;
+  };
+}
+
+export interface LLMFieldPlan {
+  fieldId: string;
+  value: string;
+  confidence: number;
+  shouldFill: boolean;
+  reviewRequired: boolean;
+  aiGenerated: boolean;
+  source: LLMFieldPlanSource;
+  reason?: string;
 }
 
 /** 获取 API base URL */
@@ -143,6 +166,97 @@ async function callClaudeAPI(
 // =================== 高层接口 ===================
 
 /**
+ * 使用 LLM 批量规划字段填充。
+ * 这一步会把规则/语义匹配结果作为候选，让模型结合整页字段上下文进行确认、纠错或留空。
+ */
+export async function llmPlanFieldMatches(
+  config: AIModelConfig,
+  inputs: LLMFieldPlanningInput[],
+  userDataSummary: string
+): Promise<LLMFieldPlan[]> {
+  if (!inputs.length) return [];
+
+  const fieldPayload = inputs.map(({ field, currentCandidate }, index) => ({
+    index,
+    fieldId: field.id,
+    label: field.label,
+    tagName: field.tagName,
+    inputType: field.inputType || '',
+    placeholder: field.placeholder || '',
+    elementName: field.elementName || '',
+    elementId: field.elementId || '',
+    sectionContext: field.sectionContext || '',
+    repeatContext: field.repeatContext || '',
+    groupIndex: typeof field.groupIndex === 'number' ? field.groupIndex : null,
+    fieldIndexInGroup: typeof field.fieldIndexInGroup === 'number' ? field.fieldIndexInGroup : null,
+    required: field.required,
+    options: field.options?.slice(0, 30) || [],
+    currentCandidate: currentCandidate
+      ? {
+          value: currentCandidate.value || '',
+          matchedBy: currentCandidate.matchedBy,
+          confidence: Number(currentCandidate.confidence.toFixed(2)),
+          reason: currentCandidate.reason || '',
+        }
+      : null,
+  }));
+
+  const prompt = `你是 Resume Bridge 的网申表单智能填充规划器。你的任务不是盲目填满页面，而是根据候选人的结构化资料，判断每个表单字段应该填什么、是否应该填、是否需要人工复核。
+
+候选人资料：
+${userDataSummary}
+
+表单字段（JSON）：
+${JSON.stringify(fieldPayload, null, 2)}
+
+决策规则：
+1. 优先使用候选人资料中的真实事实；没有对应事实时必须留空。
+2. currentCandidate 是规则/语义引擎给出的候选值，你需要检查它是否和字段含义一致；如果不一致，返回空值或纠正为更合适的资料。
+3. 重复模块必须按 groupIndex / repeatContext 对应不同的教育或经历，不能把同一段实习/项目描述重复填到所有经历里。
+4. 如果字段是经历描述、职责、成果，只能使用对应那段经历的描述、要点、成果和技术栈，不要混入其他经历。
+5. 如果字段是开放性问题、自我介绍、职业规划、优势等，可以基于真实资料生成草稿；这类内容必须标记 source="generated"、aiGenerated=true、reviewRequired=true。
+6. 如果只是把资料改写、压缩、整理成字段需要的表达，标记 source="rewritten"、aiGenerated=true、reviewRequired=true。
+7. 如果是姓名、邮箱、手机、学校、专业、公司、岗位、日期、链接等直接事实，标记 source="profile"、aiGenerated=false；低把握时 reviewRequired=true。
+8. 验证码、密码、搜索、筛选、隐私同意、承诺勾选、文件上传、无法判断的字段必须留空。
+9. 对下拉框字段，value 必须尽量使用 options 中的原文；没有可靠选项时留空。
+10. 返回严格 JSON，不要 Markdown。格式如下：
+{
+  "fields": [
+    {
+      "fieldId": "字段 ID",
+      "value": "要填入的内容；没有可靠内容则空字符串",
+      "confidence": 0到1的小数,
+      "shouldFill": true或false,
+      "reviewRequired": true或false,
+      "aiGenerated": true或false,
+      "source": "profile|rewritten|generated|empty|unknown",
+      "reason": "一句很短的中文原因"
+    }
+  ]
+}`;
+
+  try {
+    const response = await callLLM(config, {
+      messages: [
+        {
+          role: 'system',
+          content:
+            '你是谨慎的网申表单填充规划器。只返回 JSON。没有可靠依据就留空。AI 生成或改写内容必须标记为需要人工复核。',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.12,
+      maxTokens: Math.min(4200, Math.max(1200, inputs.length * 180)),
+    });
+
+    return normalizeLLMFieldPlans(response.content, new Set(inputs.map(({ field }) => field.id)));
+  } catch (error) {
+    console.error('[Resume Bridge] LLM 批量规划失败:', error);
+    return [];
+  }
+}
+
+/**
  * 使用 LLM 进行字段智能匹配
  */
 export async function llmMatchField(
@@ -202,6 +316,79 @@ ${userDataSummary}
     console.error('[Resume Bridge] LLM 匹配失败:', error);
     return { value: '', confidence: 0 };
   }
+}
+
+function normalizeLLMFieldPlans(content: string, allowedIds: Set<string>): LLMFieldPlan[] {
+  const parsed = parseLLMJson(content);
+  const rows = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { fields?: unknown }).fields)
+      ? (parsed as { fields: unknown[] }).fields
+      : [];
+
+  return rows
+    .map((item): LLMFieldPlan | null => {
+      if (!item || typeof item !== 'object') return null;
+      const raw = item as Record<string, unknown>;
+      const fieldId = typeof raw.fieldId === 'string' ? raw.fieldId : '';
+      if (!fieldId || !allowedIds.has(fieldId)) return null;
+
+      const value = typeof raw.value === 'string' ? raw.value.trim() : '';
+      const source = normalizePlanSource(raw.source);
+      const parsedConfidence = typeof raw.confidence === 'number' ? raw.confidence : Number(raw.confidence);
+      const confidence = clampConfidence(Number.isFinite(parsedConfidence) ? parsedConfidence : value ? 0.68 : 0, source);
+      const aiGenerated = Boolean(raw.aiGenerated) || source === 'generated' || source === 'rewritten';
+      const shouldFill = Boolean(raw.shouldFill) && Boolean(value);
+      const reviewRequired = Boolean(raw.reviewRequired) || aiGenerated || confidence < 0.78;
+      const reason = typeof raw.reason === 'string' ? raw.reason.slice(0, 140) : undefined;
+
+      return {
+        fieldId,
+        value,
+        confidence: value ? confidence : 0,
+        shouldFill,
+        reviewRequired: value ? reviewRequired : false,
+        aiGenerated: value ? aiGenerated : false,
+        source: value ? source : 'empty',
+        reason,
+      };
+    })
+    .filter((item): item is LLMFieldPlan => Boolean(item));
+}
+
+function parseLLMJson(content: string): unknown {
+  let jsonStr = content.trim();
+  jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    const firstObject = jsonStr.indexOf('{');
+    const lastObject = jsonStr.lastIndexOf('}');
+    if (firstObject >= 0 && lastObject > firstObject) {
+      return JSON.parse(jsonStr.slice(firstObject, lastObject + 1));
+    }
+
+    const firstArray = jsonStr.indexOf('[');
+    const lastArray = jsonStr.lastIndexOf(']');
+    if (firstArray >= 0 && lastArray > firstArray) {
+      return JSON.parse(jsonStr.slice(firstArray, lastArray + 1));
+    }
+  }
+
+  return null;
+}
+
+function normalizePlanSource(source: unknown): LLMFieldPlanSource {
+  if (source === 'profile' || source === 'rewritten' || source === 'generated' || source === 'empty' || source === 'unknown') {
+    return source;
+  }
+  return 'unknown';
+}
+
+function clampConfidence(confidence: number, source: LLMFieldPlanSource): number {
+  const upperBound = source === 'profile' ? 0.92 : source === 'rewritten' ? 0.84 : source === 'generated' ? 0.78 : 0.72;
+  return Math.max(0, Math.min(upperBound, confidence));
 }
 
 /**

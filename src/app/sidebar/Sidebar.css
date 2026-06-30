@@ -340,6 +340,7 @@
 
 .result-field-value,
 .result-field-error,
+.result-field-note,
 .result-field-meta,
 .result-field-reason {
   margin-top: 6px;
@@ -358,12 +359,31 @@
   text-transform: uppercase;
 }
 
+.result-ai-chip {
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 6px;
+  color: color-mix(in oklch, var(--ca-warning), var(--ca-text) 34%);
+  background: var(--ca-warning-light);
+  border: 1px solid color-mix(in oklch, var(--ca-warning), var(--ca-border) 58%);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: none;
+}
+
 .result-field-reason {
   color: var(--ca-text-tertiary);
 }
 
 .result-field-error {
   color: var(--ca-danger);
+}
+
+.result-field-note {
+  color: color-mix(in oklch, var(--ca-warning), var(--ca-text) 32%);
 }
 
 .info-quick-settings {

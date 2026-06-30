@@ -707,11 +707,23 @@ function scanFormFields(): FormField[] {
 
 // =================== 核心功能：增强版填充 ===================
 
-function executeFill(fieldsToFill: { fieldId: string; value: string; type?: string }[]): FillFieldResult[] {
+function executeFill(
+  fieldsToFill: {
+    fieldId: string;
+    value: string;
+    type?: string;
+    reviewRequired?: boolean;
+    aiGenerated?: boolean;
+    aiSource?: FillFieldResult['aiSource'];
+    confidence?: number;
+    matchedFrom?: string;
+    matchReason?: string;
+  }[]
+): FillFieldResult[] {
   const ats = detectCurrentATS();
   const results: FillFieldResult[] = [];
 
-  fieldsToFill.forEach(({ fieldId, value, type }) => {
+  fieldsToFill.forEach(({ fieldId, value, type, reviewRequired, aiGenerated, aiSource, confidence, matchedFrom, matchReason }) => {
     const element = document.querySelector<HTMLElement>(`[data-ca-field-id="${fieldId}"]`);
 
     if (!element) {
@@ -729,13 +741,14 @@ function executeFill(fieldsToFill: { fieldId: string; value: string; type?: stri
     try {
       const tagName = element.tagName.toLowerCase();
       const inputType = (element as HTMLInputElement).type?.toLowerCase();
+      let applied = true;
 
       if (tagName === 'select') {
-        fillSelect(element as HTMLSelectElement, value);
+        applied = fillSelect(element as HTMLSelectElement, value);
       } else if (tagName === 'textarea' || (tagName === 'input' && !['radio', 'checkbox'].includes(inputType))) {
         fillTextInput(element as HTMLInputElement, value);
       } else if (inputType === 'radio') {
-        fillRadio(element as HTMLInputElement, value, ats);
+        applied = fillRadio(element as HTMLInputElement, value, ats);
       } else if (inputType === 'checkbox') {
         fillCheckbox(element as HTMLInputElement, value);
       } else if (element.getAttribute('contenteditable') === 'true') {
@@ -744,16 +757,29 @@ function executeFill(fieldsToFill: { fieldId: string; value: string; type?: stri
         element.dispatchEvent(new Event('change', { bubbles: true }));
       }
 
-      // 成功高亮（带动画）
-      applySuccessHighlight(element);
+      if (!applied) {
+        throw new Error('未找到匹配的页面选项');
+      }
+
+      // 成功高亮（带动画），AI 生成/低置信内容用待确认状态提示。
+      if (reviewRequired) {
+        applyPendingHighlight(element, aiGenerated ? 'AI generated or rewritten; review before submitting' : 'Review before submitting');
+      } else {
+        applySuccessHighlight(element);
+      }
 
       results.push({
         fieldId,
         label: findLabel(element, ats),
         type: (type as FillFieldResult['type']) || 'text',
-        status: 'success',
+        status: reviewRequired ? 'pending' : 'success',
         filledValue: value,
-        confidence: 1,
+        confidence: typeof confidence === 'number' ? confidence : 1,
+        matchedFrom,
+        matchReason,
+        reviewRequired,
+        aiGenerated,
+        aiSource,
       });
     } catch (error) {
       applyErrorHighlight(element);
@@ -804,7 +830,7 @@ function fillTextInput(input: HTMLInputElement | HTMLTextAreaElement, value: str
 }
 
 /** 填充下拉选择框 */
-function fillSelect(select: HTMLSelectElement, value: string): void {
+function fillSelect(select: HTMLSelectElement, value: string): boolean {
   const option = Array.from(select.options).find(
     (opt) =>
       opt.value === value ||
@@ -816,48 +842,56 @@ function fillSelect(select: HTMLSelectElement, value: string): void {
   if (option) {
     select.value = option.value;
     select.dispatchEvent(new Event('change', { bubbles: true }));
-  } else {
-    // 模糊匹配：找最相似的选项
-    let bestMatch: HTMLOptionElement | null = null;
-    let bestScore = 0;
-    Array.from(select.options).forEach((opt) => {
-      if (!opt.value || opt.value === '-1') return;
-      const optText = opt.text.trim().toLowerCase();
-      const valText = value.toLowerCase();
-      const overlap = [...valText].filter(c => optText.includes(c)).length / valText.length;
-      if (overlap > bestScore && overlap >= 0.5) {
-        bestScore = overlap;
-        bestMatch = opt;
-      }
-    });
-    if (bestMatch) {
-      select.value = (bestMatch as HTMLOptionElement).value;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    return true;
   }
+
+  // 模糊匹配：找最相似的选项
+  let bestMatch: HTMLOptionElement | null = null;
+  let bestScore = 0;
+  Array.from(select.options).forEach((opt) => {
+    if (!opt.value || opt.value === '-1') return;
+    const optText = opt.text.trim().toLowerCase();
+    const valText = value.toLowerCase();
+    const overlap = [...valText].filter(c => optText.includes(c)).length / valText.length;
+    if (overlap > bestScore && overlap >= 0.5) {
+      bestScore = overlap;
+      bestMatch = opt;
+    }
+  });
+  if (bestMatch) {
+    select.value = (bestMatch as HTMLOptionElement).value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  return false;
 }
 
 /** 填充单选框 */
-function fillRadio(radio: HTMLInputElement, value: string, ats: DetectedATS | null): void {
+function fillRadio(radio: HTMLInputElement, value: string, ats: DetectedATS | null): boolean {
   // 找到同名的所有 radio
   const name = radio.getAttribute('name');
   if (!name) {
     if (radio.value === value) {
       radio.checked = true;
       radio.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
     }
-    return;
+    return false;
   }
 
   const radios = document.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(name)}"]`);
+  let applied = false;
   radios.forEach((r) => {
     const label = findLabel(r, ats);
     if (r.value === value || label === value || label.includes(value) || value.includes(label)) {
       r.checked = true;
       r.dispatchEvent(new Event('change', { bubbles: true }));
       r.dispatchEvent(new Event('click', { bubbles: true }));
+      applied = true;
     }
   });
+  return applied;
 }
 
 /** 填充复选框 */
@@ -901,6 +935,7 @@ function injectHighlightCSS(): void {
     [data-ca-filled="pending"] {
       outline: 2px solid #f59e0b !important;
       outline-offset: 2px !important;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18) !important;
     }
   `;
   document.head.appendChild(style);
@@ -910,11 +945,19 @@ function injectHighlightCSS(): void {
 function applySuccessHighlight(element: HTMLElement): void {
   injectHighlightCSS();
   element.setAttribute('data-ca-filled', 'success');
+  element.removeAttribute('data-ca-review-note');
 }
 
 function applyErrorHighlight(element: HTMLElement): void {
   injectHighlightCSS();
   element.setAttribute('data-ca-filled', 'error');
+  element.removeAttribute('data-ca-review-note');
+}
+
+function applyPendingHighlight(element: HTMLElement, note: string): void {
+  injectHighlightCSS();
+  element.setAttribute('data-ca-filled', 'pending');
+  element.setAttribute('data-ca-review-note', note);
 }
 
 // =================== 清空填充 ===================

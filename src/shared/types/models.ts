@@ -192,6 +192,9 @@ export interface FillFieldResult {
   matchedFrom?: string; // 匹配来源：rule / semantic / llm
   confidence: number; // 匹配置信度 0-1
   matchReason?: string; // 匹配/跳过原因
+  reviewRequired?: boolean; // 已填充但需要人工复核
+  aiGenerated?: boolean; // 内容由 AI 生成或改写
+  aiSource?: 'profile' | 'rewritten' | 'generated' | 'empty' | 'unknown';
   errorMessage?: string;
 }
 

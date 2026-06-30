@@ -89,7 +89,7 @@ export default function Sidebar() {
         return;
       }
 
-      // 调用填充编排器（扫描→规则匹配→语义匹配→LLM兜底→填充→校验）
+      // 调用填充编排器（扫描→规则/语义匹配→可选 AI 规划→填充→校验）
       const result = await executeFullFill(tabId, (step, progress) => {
         setStatusMessage(`${step} (${progress}%)`);
       });
@@ -358,12 +358,20 @@ export default function Sidebar() {
                       )}
                       <div className="result-field-meta">
                         {field.matchedFrom || 'none'} · {Math.round(field.confidence * 100)}%
+                        {field.aiGenerated && (
+                          <span className="result-ai-chip">{t('sidebar.result.aiGenerated')}</span>
+                        )}
+                        {!field.aiGenerated && field.reviewRequired && field.matchedFrom === 'llm' && (
+                          <span className="result-ai-chip">{t('sidebar.result.aiMatched')}</span>
+                        )}
                       </div>
                       {field.matchReason && (
                         <div className="result-field-reason">{field.matchReason}</div>
                       )}
                       {field.errorMessage && (
-                        <div className="result-field-error">{field.errorMessage}</div>
+                        <div className={field.status === 'pending' ? 'result-field-note' : 'result-field-error'}>
+                          {field.errorMessage}
+                        </div>
                       )}
                     </div>
                   ))}
